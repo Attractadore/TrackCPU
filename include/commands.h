@@ -46,5 +46,5 @@ static Command const commandArr[] = {
     {CMD_PRINT_NAME, CMD_PRINT_CODE, 0},
 };
 
-Command const* getCommand(char const* str);
-
+Command const* getCommandByName(char const* str);
+Command const* getCommandByCode(const CommandCode code);
