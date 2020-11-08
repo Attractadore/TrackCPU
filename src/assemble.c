@@ -75,7 +75,7 @@ char const* getAssemblyErrorString(AssemblyError e) {
         case ASSEMBLY_INVALID_ARGUMENT_COUNT:
             return "Source contains command with invalid argument count";
         default:
-            return "Unkown assembly error";
+            return "Unknown assembly error";
     }
     assert(!"No error returned string returned");
 }
@@ -87,11 +87,11 @@ AssemblyError assemble(char* const inputString, FILE* outputFile) {
 
     char const* token = strtok(inputString, delim);
     while (token) {
-        Command const* const cmd = getCommand(token);
+        Command const* const cmd = getCommandByName(token);
         if (!cmd) {
             return ASSEMBLY_INVALID_COMMAND;
         }
-        unsigned cmdCode = cmd->code;
+        size_t cmdCode = cmd->code;
         fwrite(&cmdCode, sizeof(cmdCode), 1, outputFile);
         for (size_t i = 0; i < cmd->numArgs; i++) {
             token = strtok(NULL, delim);
