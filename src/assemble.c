@@ -1,4 +1,5 @@
 #include "commands.h"
+#include "util.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -6,33 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-
-char* readString(FILE* const inputFile) {
-    assert(inputFile);
-
-    fseek(inputFile, 0, SEEK_END);
-    long fileEnd = ftell(inputFile);
-    fseek(inputFile, 0, SEEK_SET);
-    long fileStart = ftell(inputFile);
-    
-    if (ferror(inputFile)) {
-        return NULL;
-    }
-
-    size_t fileSize = fileEnd - fileStart;
-    char* buffer = calloc(fileSize + 1, sizeof(*buffer));
-    if (!buffer) {
-        return NULL;
-    }
-
-    fread(buffer, sizeof(*buffer), fileSize, inputFile);
-    if (ferror(inputFile)) {
-        free(buffer);
-        return NULL;
-    }
-
-    return buffer;
-}
 
 void strip(char* const inputString) {
     assert(inputString);
