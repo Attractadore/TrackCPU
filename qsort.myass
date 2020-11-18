@@ -1,0 +1,69 @@
+call .main
+halt
+
+.partition:
+    return
+
+.qsort:
+    push re
+    push rb
+    lu
+    jumpf .qsort_finish
+.qsort_finish:
+    return
+
+.read_arr:
+    pushu 0 pop ra
+.read_arr_test_loop:
+    push rn
+    push ra
+    lu
+    jumpf .read_arr_finish_loop
+.read_arr_loop:
+    scani
+    push ra
+    store
+    push ra
+    pushu 1
+    addu
+    pop ra
+    jump .read_arr_test_loop
+.read_arr_finish_loop:
+    return
+
+.print_arr:
+    pushu 0
+    pop ra
+.print_arr_test_loop:
+    push rn
+    push ra
+    lu
+    jumpf .print_arr_finish_loop
+.print_arr_loop:
+    push ra
+    load
+    printi
+    pops
+    push ra
+    pushu 1
+    addu
+    pop ra
+    jump .print_arr_test_loop
+.print_arr_finish_loop:
+    return
+
+.main:
+    scanu
+    top rn
+    call .read_arr
+    pushu 0
+    pop rb
+    top re
+    pushu 1
+    push re
+    subu
+    pop re
+    call .qsort
+    pop rn
+    call .print_arr
+    return
