@@ -10,7 +10,7 @@ char* readString(FILE* const inputFile) {
     long fileEnd = ftell(inputFile);
     fseek(inputFile, 0, SEEK_SET);
     long fileStart = ftell(inputFile);
-    
+
     if (ferror(inputFile)) {
         return NULL;
     }
@@ -40,7 +40,7 @@ size_t readBuffer(FILE* const inputFile, char** bufferP) {
     long fileEnd = ftell(inputFile);
     fseek(inputFile, 0, SEEK_SET);
     long fileStart = ftell(inputFile);
-    
+
     if (ferror(inputFile)) {
         return 0;
     }
@@ -61,4 +61,3 @@ size_t readBuffer(FILE* const inputFile, char** bufferP) {
 
     return readSize;
 }
-

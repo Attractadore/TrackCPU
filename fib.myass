@@ -2,52 +2,50 @@
     halt
 
 .fib:
-    # store n in wa0
-    # compare wa0 to 1
-    pushul 1
-    pushw wa0
-    cmpul
-    jumple .fib_small
-    jump .fib_large
+    # store n in ra
+    # compare ra to 1
+    pushu 1
+    push ra
+    leu
+    jumpf .fib_large
 .fib_small:
-    pushw wa0
+    push ra
     return
 .fib_large:
     # check if result is cached
-    pushw wa0
-    popq qc0
-    loadwr wb0 qc0
+    push ra
+    top rc
+    load
+    top rb
     # compare cached value with 0
-    pushul 0
-    cmpul
     # if 0, cache
-    jumpne .fib_finish
+    jumpt .fib_finish
     # decrement n second time
-    pushul 1
+    pushu 1
     # decrement n first time
-    pushul 1
-    pushw wa0
-    subul
-    topw wa0
+    pushu 1
+    push ra
+    subu
+    top ra
     call .fib
-    popw wb0
-    subul
-    popw wa0
+    pop rb
+    subu
+    pop ra
     call .fib
-    pushw wb0
-    addul
-    popw wb0
-    storewr wb0 qc0
+    push rb
+    addu
+    top rb
+    push rc
+    store
 .fib_finish:
-    loadwr wb0 qc0
-    pushw wb0
+    push rb
     return
 
 .main:
-    scanul
-    popw wa0
+    scanu
+    pop ra
     call .fib
-    printul
-    popstk
+    printu
+    pops
     return
 

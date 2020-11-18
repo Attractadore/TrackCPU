@@ -5,69 +5,65 @@ halt
 
 .square_solve:
     # variable storage
-    # a in wa0
-    # b in wb0
-    # c in wc0
-    # D in wd0
-    # x1 in we0
-    # x2 in wf0
+    # a in ra
+    # b in rb
+    # c in rc
+    # D in rd
+    # x1 in re
+    # x2 in rf
     # normalize b
-    pushw wa0
-    pushw wb0
-    divd
-    popw wb0
+    push ra
+    push rb
+    divf
+    pop rb
     # normalize c
-    pushw wa0
-    pushw wc0
-    divd
-    popw wc0
+    push ra
+    push rc
+    divf
+    pop rc
     # normalize a
-    pushd 1
-    popw wa0
+    pushf 1
+    pop ra
     # calculate sqrt(D)
-    pushd 4
-    pushw wa0
-    pushw wc0
-    muld
-    muld
-    pushw wb0
-    pushw wb0
-    muld
-    subd
-    sqrtd
-    popw wd0
+    pushf 4
+    push ra
+    push rc
+    mulf
+    mulf
+    push rb
+    push rb
+    mulf
+    subf
+    pop rd
     # calculate x1 = (0 - b + D) / 2
-    pushd 2
-    pushw wd0
-    pushw wb0
-    pushd 0
-    subd
-    addd
-    divd
-    popw we0
+    pushf 2
+    push rd
+    push rb
+    pushf 0
+    subf
+    addf
+    divf
+    pop re
     # calculate x2 = x1 - D
-    pushw wd0
-    pushw we0
-    subd
-    # popw wf0
+    push rd
+    push re
+    subf
+    # pop rf
     # push x1 and x2 to stack
-    # pushw wf0
-    pushw we0
+    # push rf
+    push re
     return
 
 .main:
-    # pushw a
-    scand
-    popw wa0
-    # pushw b
-    scand
-    popw wb0
-    # pushw c
-    scand
-    popw wc0
+    scanf
+    pop ra
+    scanf
+    pop rb
+    scanf
+    pop rc
     call .square_solve
-    printd
-    popstk
-    printd
-    popstk
+    printf
+    pops
+    printf
+    pops
     return

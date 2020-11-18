@@ -109,8 +109,7 @@ ExecuteError processCommand(char const** const commandBufferP, size_t* const com
     *commandBufferSizeP -= sizeof(cmdCode);
 
     switch (cmdCode) {
-        case CMD_PUSH_CODE:
-            {
+        case CMD_PUSH_CODE: {
             double cmdArg;
             if (sizeof(cmdArg) > *commandBufferSizeP) {
                 return EXECUTE_CORRUPTION;
@@ -120,7 +119,7 @@ ExecuteError processCommand(char const** const commandBufferP, size_t* const com
             *commandBufferSizeP -= sizeof(cmdCode);
             StackPush_double(valueStack, cmdArg);
             return EXECUTE_OK;
-            }
+        }
         case CMD_ADD_CODE:
             return executeTwoArgCommand(valueStack, CPUAdd);
         case CMD_SUB_CODE:
@@ -135,8 +134,7 @@ ExecuteError processCommand(char const** const commandBufferP, size_t* const com
             return executeOneArgCommand(valueStack, CPUSin);
         case CMD_COS_CODE:
             return executeOneArgCommand(valueStack, CPUCos);
-        case CMD_PRINT_CODE:
-            {
+        case CMD_PRINT_CODE: {
             double arg = StackTop_double(valueStack);
             if (StackGetError_double(valueStack) == STACK_OPERATION_ERROR) {
                 return EXECUTE_STACK_UNDERFLOW;
@@ -146,9 +144,8 @@ ExecuteError processCommand(char const** const commandBufferP, size_t* const com
             }
             printf("%g\n", arg);
             return EXECUTE_OK;
-            }
-        case CMD_SCAN_CODE:
-            {
+        }
+        case CMD_SCAN_CODE: {
             double arg;
             if (scanf("%lg", &arg) != 0) {
                 return EXECUTE_INPUT_FAILURE;
@@ -158,7 +155,7 @@ ExecuteError processCommand(char const** const commandBufferP, size_t* const com
                 return EXECUTE_INTERNAL_FAILURE;
             }
             return EXECUTE_OK;
-            }
+        }
         case CMD_HALT_CODE:
             return EXECUTE_TERMINATE;
         default:

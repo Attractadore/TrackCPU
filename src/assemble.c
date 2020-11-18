@@ -3,12 +3,12 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <inttypes.h>
 
 void strip(char* const inputString) {
     assert(inputString);
@@ -275,17 +275,25 @@ AssemblyError handleArg(CommandArgType argType, char const** const tokenP, char 
     printf("Process arg %s\n", token);
 
     switch (argType) {
-        case CMD_ARG_TYPE_DOUBLE: {
-            double cmdArg;
-            if (sscanf(token, "%lg", &cmdArg) != 1) {
+        case CMD_ARG_TYPE_INT: {
+            int64_t cmdArg;
+            if (sscanf(token, "%" SCNd64, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             fwrite(&cmdArg, sizeof(cmdArg), 1, outputFile);
             ip += sizeof(cmdArg);
         } break;
-        case CMD_ARG_TYPE_ULONG: {
+        case CMD_ARG_TYPE_UINT: {
             uint64_t cmdArg;
-            if (sscanf(token, "%"SCNu64, &cmdArg) != 1) {
+            if (sscanf(token, "%" SCNu64, &cmdArg) != 1) {
+                return ASSEMBLY_INVALID_ARGUMENT;
+            }
+            fwrite(&cmdArg, sizeof(cmdArg), 1, outputFile);
+            ip += sizeof(cmdArg);
+        } break;
+        case CMD_ARG_TYPE_FLOAT: {
+            double cmdArg;
+            if (sscanf(token, "%lg", &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             fwrite(&cmdArg, sizeof(cmdArg), 1, outputFile);
@@ -307,12 +315,9 @@ AssemblyError handleArg(CommandArgType argType, char const** const tokenP, char 
                     return ASSEMBLY_UNKNOW_ERROR;
             }
         } break;
-        case CMD_ARG_TYPE_REGISTER_64:
-        case CMD_ARG_TYPE_REGISTER_32:
-        case CMD_ARG_TYPE_REGISTER_16:
-        case CMD_ARG_TYPE_REGISTER_8: {
+        case CMD_ARG_TYPE_REGISTER: {
             Register const* reg = getRegisterByName(token);
-            if (!reg || reg->type != argType) {
+            if (!reg) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             fwrite(&(reg->code), sizeof(reg->code), 1, outputFile);
@@ -393,7 +398,6 @@ AssemblyError assemble(char* const inputString, FILE* outputFile) {
     if (!labelTable) {
         return ASSEMBLY_MEMORY_EXHAUSTED;
     }
-
     size_t ip = 0;
     char* token = strtok(inputString, delim);
     while (token) {

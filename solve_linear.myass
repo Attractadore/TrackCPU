@@ -4,21 +4,21 @@ call .main
 halt
 
 .linear_solve:
-    pushw wa0
-    pushw wb0
-    pushd 0
-    subd
-    divd
+    push ra
+    push rb
+    pushf 0
+    subf
+    divf
     return
 
 .main:
     # push a
-    scand
-    popw wa0
+    scanf
+    pop ra
     # push b
-    scand
-    popw wb0
+    scanf
+    pop rb
     call .linear_solve
-    printd
-    popstk
+    printf
+    pops
     return

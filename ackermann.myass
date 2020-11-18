@@ -3,60 +3,56 @@
 
 .ackermann:
     # variable storage
-    # m in wa0
-    # n in wb0
+    # m in ra
+    # n in rb
     # compare m to 0
-    pushul 0
-    pushw wa0
-    cmpul
-    jumpeq .ackermann_m_0
+    push ra
+    jumpf .ackermann_m_0
     jump  .ackermann_m_not_0
 .ackermann_m_0:
     # return n + 1
-    pushul 1
-    pushw wb0
-    addul
+    pushu 1
+    push rb
+    addu
     return
 .ackermann_m_not_0:
     # compare n to 0
-    pushul 0
-    pushw wb0
-    cmpul
-    jumpeq .ackermann_n_0
+    push rb
+    jumpf .ackermann_n_0
     jump .ackermann_n_not_0
 .ackermann_n_0:
     # decrement m
-    pushul 1
-    pushw wa0
-    subul
-    popw wa0
+    pushu 1
+    push ra
+    subu
+    pop ra
     # set n to 1
-    pushul 1
-    popw wb0
+    pushu 1
+    pop rb
     call .ackermann
     return
 .ackermann_n_not_0:
     # store m - 1
-    pushul 1
-    pushw wa0
-    subul
+    pushu 1
+    push ra
+    subu
     # decrement n
-    pushul 1
-    pushw wb0
-    subul
-    popw wb0
+    pushu 1
+    push rb
+    subu
+    pop rb
     call .ackermann
-    popw wb0
-    popw wa0
+    pop rb
+    pop ra
     call .ackermann
     return
 
 .main:
-    scanul
-    popw wa0
-    scanul
-    popw wb0
+    scanu
+    pop ra
+    scanu
+    pop rb
     call .ackermann
-    printul
-    popstk
+    printu
+    pops
     return

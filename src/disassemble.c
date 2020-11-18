@@ -3,10 +3,10 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 typedef enum disassembly_error_e {
     DISASSEMBLY_OK,
@@ -65,7 +65,7 @@ DisassemblyError disassemble(char const* const inputBuffer, const size_t numByte
     return DISASSEMBLY_OK;
 }
 
-int main(int argc, char const* argv []) {
+int main(int argc, char const* argv[]) {
     if (argc < 3) {
         printf("Usage: %s input_file output_file\n", (argc) ? (argv[0]) : ("program_name"));
         return -1;
