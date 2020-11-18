@@ -1,0 +1,24 @@
+# solve the linear equation ax + b = 0
+# x = -b / a
+call .main
+halt
+
+.linear_solve:
+    pushw wa0
+    pushw wb0
+    pushd 0
+    subd
+    divd
+    return
+
+.main:
+    # push a
+    scand
+    popw wa0
+    # push b
+    scand
+    popw wb0
+    call .linear_solve
+    printd
+    popstk
+    return

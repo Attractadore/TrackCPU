@@ -1,0 +1,53 @@
+    call .main
+    halt
+
+.fib:
+    # store n in wa0
+    # compare wa0 to 1
+    pushul 1
+    pushw wa0
+    cmpul
+    jumple .fib_small
+    jump .fib_large
+.fib_small:
+    pushw wa0
+    return
+.fib_large:
+    # check if result is cached
+    pushw wa0
+    popq qc0
+    loadwr wb0 qc0
+    # compare cached value with 0
+    pushul 0
+    cmpul
+    # if 0, cache
+    jumpne .fib_finish
+    # decrement n second time
+    pushul 1
+    # decrement n first time
+    pushul 1
+    pushw wa0
+    subul
+    topw wa0
+    call .fib
+    popw wb0
+    subul
+    popw wa0
+    call .fib
+    pushw wb0
+    addul
+    popw wb0
+    storewr wb0 qc0
+.fib_finish:
+    loadwr wb0 qc0
+    pushw wb0
+    return
+
+.main:
+    scanul
+    popw wa0
+    call .fib
+    printul
+    popstk
+    return
+

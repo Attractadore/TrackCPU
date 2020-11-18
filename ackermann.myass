@@ -1,0 +1,62 @@
+    call .main
+    halt
+
+.ackermann:
+    # variable storage
+    # m in wa0
+    # n in wb0
+    # compare m to 0
+    pushul 0
+    pushw wa0
+    cmpul
+    jumpeq .ackermann_m_0
+    jump  .ackermann_m_not_0
+.ackermann_m_0:
+    # return n + 1
+    pushul 1
+    pushw wb0
+    addul
+    return
+.ackermann_m_not_0:
+    # compare n to 0
+    pushul 0
+    pushw wb0
+    cmpul
+    jumpeq .ackermann_n_0
+    jump .ackermann_n_not_0
+.ackermann_n_0:
+    # decrement m
+    pushul 1
+    pushw wa0
+    subul
+    popw wa0
+    # set n to 1
+    pushul 1
+    popw wb0
+    call .ackermann
+    return
+.ackermann_n_not_0:
+    # store m - 1
+    pushul 1
+    pushw wa0
+    subul
+    # decrement n
+    pushul 1
+    pushw wb0
+    subul
+    popw wb0
+    call .ackermann
+    popw wb0
+    popw wa0
+    call .ackermann
+    return
+
+.main:
+    scanul
+    popw wa0
+    scanul
+    popw wb0
+    call .ackermann
+    printul
+    popstk
+    return

@@ -1,0 +1,73 @@
+# solve the linear equation ax + b = 0
+# x = -b / a
+call .main
+halt
+
+.square_solve:
+    # variable storage
+    # a in wa0
+    # b in wb0
+    # c in wc0
+    # D in wd0
+    # x1 in we0
+    # x2 in wf0
+    # normalize b
+    pushw wa0
+    pushw wb0
+    divd
+    popw wb0
+    # normalize c
+    pushw wa0
+    pushw wc0
+    divd
+    popw wc0
+    # normalize a
+    pushd 1
+    popw wa0
+    # calculate sqrt(D)
+    pushd 4
+    pushw wa0
+    pushw wc0
+    muld
+    muld
+    pushw wb0
+    pushw wb0
+    muld
+    subd
+    sqrtd
+    popw wd0
+    # calculate x1 = (0 - b + D) / 2
+    pushd 2
+    pushw wd0
+    pushw wb0
+    pushd 0
+    subd
+    addd
+    divd
+    popw we0
+    # calculate x2 = x1 - D
+    pushw wd0
+    pushw we0
+    subd
+    # popw wf0
+    # push x1 and x2 to stack
+    # pushw wf0
+    pushw we0
+    return
+
+.main:
+    # pushw a
+    scand
+    popw wa0
+    # pushw b
+    scand
+    popw wb0
+    # pushw c
+    scand
+    popw wc0
+    call .square_solve
+    printd
+    popstk
+    printd
+    popstk
+    return

@@ -1,0 +1,32 @@
+    call .main
+    halt
+
+.fact:
+    # init accumlator
+    pushul 1
+.fact_loop_start:
+    # compare wa0 to 1
+    pushul 1
+    pushw wa0
+    cmpul
+    jumple .fact_end
+.fact_loop_body:
+    # multiply accumulator by wa0
+    pushw wa0
+    mulul
+    # decrement wa0
+    pushul 1
+    pushw wa0
+    subul
+    popw wa0
+    jump .fact_loop_start
+.fact_end:
+    return
+
+.main:
+    scanul
+    popw wa0
+    call .fact
+    printul
+    popstk
+    return
