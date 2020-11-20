@@ -1,10 +1,7 @@
 #pragma once
 
 #include <stddef.h>
-
-#define COMMENT_START '#'
-#define LABEL_START '.'
-#define LABEL_END ':'
+#include <assert.h>
 
 typedef enum command_code_e {
     CMD_HALT_CODE,
@@ -75,11 +72,26 @@ typedef enum command_code_e {
     CMD_PRINT_UINT_CODE,
     CMD_PRINT_FLOAT_CODE,
 
-    CMD_STORE_CODE,
     CMD_LOAD_CODE,
+    CMD_STORE_CODE,
+    CMD_MOVE_CODE,
 
     CMD_INVALID_CODE
 } CommandCode;
+
+typedef double CPUFloat;
+typedef long long CPUInt;
+typedef unsigned long long CPUUInt;
+typedef size_t CPUCommandID;
+typedef size_t CPURegisterID;
+static_assert(sizeof(CPUFloat) == sizeof(CPUInt) && sizeof(CPUFloat) == sizeof(CPUUInt),
+        "CPU data types are of different sizes");
+#define CPU_PFMT_F "lg"
+#define CPU_PFMT_I "lld"
+#define CPU_PFMT_UI "llu"
+#define CPU_SFMT_F "lg"
+#define CPU_SFMT_I "lld"
+#define CPU_SFMT_UI "llu"
 
 typedef enum command_arg_type_e {
     CMD_ARG_TYPE_NONE = 0,

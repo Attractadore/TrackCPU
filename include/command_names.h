@@ -68,6 +68,6 @@
 #define CMD_PRINT_UINT_NAME "printu"
 #define CMD_PRINT_FLOAT_NAME "printf"
 
-#define CMD_STORE_NAME "store"
-
 #define CMD_LOAD_NAME "load"
+#define CMD_STORE_NAME "store"
+#define CMD_MOVE_NAME "move"
