@@ -1,9 +1,9 @@
 #include "label.h"
 
-#include <string.h>
+#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <string.h>
 
 bool isLabel(char const* token) {
     return *token == LABEL_START;
@@ -162,7 +162,7 @@ LabelAddRes addLabelUseByName(LabelTable* table, char const* label, size_t ip) {
 int cmpAddress(LabelTableEntry const* leftEntryP, LabelTableEntry const* rightEntryP) {
     assert(leftEntryP);
     assert(rightEntryP);
-    
+
     if (leftEntryP->labelAddress < rightEntryP->labelAddress) {
         return -1;
     }
@@ -191,4 +191,3 @@ void freeLabelTable(LabelTable* table) {
     }
     free(table);
 }
-

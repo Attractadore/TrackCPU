@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stddef.h>
 #include <assert.h>
+#include <stddef.h>
 
 typedef enum command_code_e {
     CMD_HALT_CODE,
@@ -85,7 +85,7 @@ typedef unsigned long long CPUUInt;
 typedef size_t CPUCommandID;
 typedef size_t CPURegisterID;
 static_assert(sizeof(CPUFloat) == sizeof(CPUInt) && sizeof(CPUFloat) == sizeof(CPUUInt),
-        "CPU data types are of different sizes");
+              "CPU data types are of different sizes");
 #define CPU_PFMT_F "lg"
 #define CPU_PFMT_I "lld"
 #define CPU_PFMT_UI "llu"

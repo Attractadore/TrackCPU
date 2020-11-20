@@ -1,6 +1,6 @@
 #include "commands.h"
-#include "util.h"
 #include "label.h"
+#include "util.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -100,11 +100,11 @@ AssemblyError handleLabel(char** tokenP, size_t ip, LabelTable* labelTable) {
     assert(!"No result returned");
 }
 
-#define WRITE_ADVANCE(data, ip, outputFile) \
-do { \
-    fwrite(&data, sizeof(data), 1, outputFile); \
-    ip += sizeof(data); \
-} while(0)
+#define WRITE_ADVANCE(data, ip, outputFile)         \
+    do {                                            \
+        fwrite(&data, sizeof(data), 1, outputFile); \
+        ip += sizeof(data);                         \
+    } while (0)
 
 AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, LabelTable* labelTable, FILE* outputFile) {
     assert(tokenP);
@@ -149,8 +149,7 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, Labe
                 case LABEL_ADD_OK: {
                     size_t cmdArg = 0;
                     WRITE_ADVANCE(cmdArg, ip, outputFile);
-                }
-                    break;
+                } break;
                 case LABEL_ADD_OOM:
                     return ASSEMBLY_MEMORY_EXHAUSTED;
                 default:
