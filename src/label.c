@@ -186,8 +186,11 @@ LabelTable* createLabelTable() {
 }
 
 void freeLabelTable(LabelTable* table) {
-    for (size_t i = 0; i < table->size; i++) {
-        free(table->data[i].writeAddresses);
+    if (table) {
+        for (size_t i = 0; i < table->size; i++) {
+            free(table->data[i].writeAddresses);
+        }
+        free(table->data);
     }
     free(table);
 }
