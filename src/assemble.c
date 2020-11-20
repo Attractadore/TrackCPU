@@ -67,7 +67,7 @@ char const* getAssemblyErrorString(AssemblyError e) {
     assert(!"No error returned string returned");
 }
 
-AssemblyError handleLabel(char** tokenP, size_t ip, LabelTable* labelTable) {
+AssemblyError handleLabel(char** tokenP, CPUAddr ip, LabelTable* labelTable) {
     assert(tokenP);
     assert(labelTable);
 
@@ -107,7 +107,7 @@ AssemblyError handleLabel(char** tokenP, size_t ip, LabelTable* labelTable) {
         (ip) += sizeof(data);                         \
     } while (0)
 
-AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, LabelTable* labelTable, FILE* outputFile) {
+AssemblyError handleArg(CommandArgType argType, char** tokenP, CPUAddr* ipp, LabelTable* labelTable, FILE* outputFile) {
     assert(tokenP);
     assert(ipp);
     assert(labelTable);
@@ -115,7 +115,7 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, Labe
 
     char* token = *tokenP;
     assert(token);
-    size_t ip = *ipp;
+    CPUAddr ip = *ipp;
 
     printf("Process arg %s\n", token);
 
@@ -148,7 +148,7 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, Labe
             LabelAddRes res = addLabelUseByName(labelTable, token, ip);
             switch (res) {
                 case LABEL_ADD_OK: {
-                    size_t cmdArg = 0;
+                    CPUAddr cmdArg = 0;
                     WRITE_ADVANCE(cmdArg, ip, outputFile);
                 } break;
                 case LABEL_ADD_OOM:
@@ -175,7 +175,7 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, Labe
     return ASSEMBLY_OK;
 }
 
-AssemblyError handleCommand(char** tokenP, size_t* ipp, LabelTable* labelTable, FILE* outputFile) {
+AssemblyError handleCommand(char** tokenP, CPUAddr* ipp, LabelTable* labelTable, FILE* outputFile) {
     assert(tokenP);
     assert(ipp);
     assert(labelTable);
@@ -183,7 +183,7 @@ AssemblyError handleCommand(char** tokenP, size_t* ipp, LabelTable* labelTable, 
 
     char* token = *tokenP;
     assert(token);
-    size_t ip = *ipp;
+    CPUAddr ip = *ipp;
 
     printf("Process command %s\n", token);
 
@@ -221,7 +221,7 @@ AssemblyError processInput(char* inputString, LabelTable* labelTable, FILE* outp
     assert(labelTable);
     assert(outputFile);
 
-    size_t ip = 0;
+    CPUAddr ip = 0;
     char* token = strtok(inputString, STRIP_DELIM);
     while (token) {
         AssemblyError res = ASSEMBLY_OK;

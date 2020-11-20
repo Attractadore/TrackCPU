@@ -54,7 +54,7 @@ LabelTableEntry* findLabelByName(LabelTable* table, char const* label) {
     return NULL;
 }
 
-LabelTableEntry* findLabelByAddr(LabelTable const* table, size_t ip) {
+LabelTableEntry* findLabelByAddr(LabelTable const* table, CPUAddr ip) {
     assert(table);
 
     for (size_t i = 0; i < table->size; i++) {
@@ -85,13 +85,13 @@ LabelTableEntry* addNewLabel(LabelTable* table) {
     return newEntry;
 }
 
-size_t* addEntryAddress(LabelTableEntry* entry, size_t address) {
+CPUAddr* addEntryAddress(LabelTableEntry* entry, CPUAddr address) {
     assert(entry);
     assert(address);
 
     if (entry->size == entry->capacity) {
         size_t newCapacity = entry->capacity + LABEL_TABLE_ENTRY_CAPACITY_INCREMENT;
-        size_t* newAddresses = realloc(entry->writeAddresses, newCapacity * sizeof(*newAddresses));
+        CPUAddr* newAddresses = realloc(entry->writeAddresses, newCapacity * sizeof(*newAddresses));
         if (!newAddresses) {
             return NULL;
         }
@@ -102,7 +102,7 @@ size_t* addEntryAddress(LabelTableEntry* entry, size_t address) {
     return entry->writeAddresses;
 }
 
-LabelAddRes addLabelUseByAddr(LabelTable* table, size_t ip) {
+LabelAddRes addLabelUseByAddr(LabelTable* table, CPUAddr ip) {
     assert(table);
 
     LabelTableEntry* entry = findLabelByAddr(table, ip);
@@ -118,7 +118,7 @@ LabelAddRes addLabelUseByAddr(LabelTable* table, size_t ip) {
     return LABEL_ADD_OK;
 }
 
-LabelAddRes addLabelDefByName(LabelTable* table, char const* label, size_t ip) {
+LabelAddRes addLabelDefByName(LabelTable* table, char const* label, CPUAddr ip) {
     assert(table);
     assert(label);
 
@@ -140,7 +140,7 @@ LabelAddRes addLabelDefByName(LabelTable* table, char const* label, size_t ip) {
     return LABEL_ADD_OK;
 }
 
-LabelAddRes addLabelUseByName(LabelTable* table, char const* label, size_t ip) {
+LabelAddRes addLabelUseByName(LabelTable* table, char const* label, CPUAddr ip) {
     assert(table);
     assert(label);
 

@@ -52,12 +52,12 @@ char const* getDisassemblyErrorString(DisassemblyError e) {
         ADVANCE_CHECK(end, ip, sizeof(data), l);     \
     } while (0)
 
-DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, size_t* ipp, LabelTable* labelTable) {
+DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, CPUAddr* ipp, LabelTable* labelTable) {
     assert(inputBuffer);
     assert(ipp);
     assert(labelTable);
 
-    size_t ip = *ipp;
+    CPUAddr ip = *ipp;
 
     switch (argType) {
         case CMD_ARG_TYPE_INT:
@@ -78,7 +78,7 @@ DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, 
             }
         } break;
         case CMD_ARG_TYPE_LABEL: {
-            size_t cmdArg = numBytes;
+            CPUAddr cmdArg = numBytes;
             WRITE_ADVANCE_CHECK(inputBuffer, numBytes, ip, cmdArg, corruption);
             if (cmdArg > numBytes) {
                 return DISASSEMBLY_INVALID_JUMP_ADDRESS;
@@ -99,12 +99,12 @@ corruption:
     return DISASSEMBLY_CORRUPTION;
 }
 
-DisassemblyError preprocessCommand(char const* inputBuffer, size_t numBytes, size_t* ipp, LabelTable* labelTable) {
+DisassemblyError preprocessCommand(char const* inputBuffer, size_t numBytes, CPUAddr* ipp, LabelTable* labelTable) {
     assert(inputBuffer);
     assert(ipp);
     assert(labelTable);
 
-    size_t ip = *ipp;
+    CPUAddr ip = *ipp;
 
     CPUCommandID cmdCode = CMD_INVALID_CODE;
     WRITE_ADVANCE_CHECK(inputBuffer, numBytes, ip, cmdCode, corruption);
@@ -135,7 +135,7 @@ DisassemblyError preprocessInput(char const* inputBuffer, size_t numBytes, Label
     assert(inputBuffer);
     assert(labelTable);
 
-    size_t ip = 0;
+    CPUAddr ip = 0;
     while (ip < numBytes) {
         DisassemblyError res = preprocessCommand(inputBuffer, numBytes, &ip, labelTable);
         if (res != DISASSEMBLY_OK) {
@@ -159,13 +159,13 @@ DisassemblyError preprocessInput(char const* inputBuffer, size_t numBytes, Label
         ADVANCE(end, ip, sizeof(data));              \
     } while (0)
 
-DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, size_t* ipp, LabelTable const* labelTable, FILE* outputFile) {
+DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, CPUAddr* ipp, LabelTable const* labelTable, FILE* outputFile) {
     assert(inputBuffer);
     assert(ipp);
     assert(labelTable);
     assert(outputFile);
 
-    size_t ip = *ipp;
+    CPUAddr ip = *ipp;
 
     fputc(' ', outputFile);
     switch (argType) {
@@ -192,7 +192,7 @@ DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, siz
             fprintf(outputFile, "%s", reg->name);
         } break;
         case CMD_ARG_TYPE_LABEL: {
-            size_t cmdArg = numBytes + 1;
+            CPUAddr cmdArg = numBytes + 1;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             assert(cmdArg <= numBytes);
             LabelTableEntry const* entry = findLabelByAddr(labelTable, cmdArg);
@@ -209,13 +209,13 @@ DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, siz
     return DISASSEMBLY_OK;
 }
 
-DisassemblyError processCommand(char const* inputBuffer, size_t numBytes, size_t* ipp, LabelTable const* labelTable, FILE* outputFile) {
+DisassemblyError processCommand(char const* inputBuffer, size_t numBytes, CPUAddr* ipp, LabelTable const* labelTable, FILE* outputFile) {
     assert(inputBuffer);
     assert(ipp);
     assert(labelTable);
     assert(outputFile);
 
-    size_t ip = *ipp;
+    CPUAddr ip = *ipp;
 
     CPUCommandID cmdCode = CMD_INVALID_CODE;
     WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdCode);
@@ -241,7 +241,7 @@ DisassemblyError processCommand(char const* inputBuffer, size_t numBytes, size_t
 #undef ADVANCE
 #undef WRITE_ADVANCE
 
-LabelTableEntry const* processNextLabel(LabelTableEntry const* nextLabel, LabelTableEntry const* firstLabel, size_t ip, FILE* outputFile) {
+LabelTableEntry const* processNextLabel(LabelTableEntry const* nextLabel, LabelTableEntry const* firstLabel, CPUAddr ip, FILE* outputFile) {
     assert(nextLabel);
     assert(firstLabel);
     assert(nextLabel >= firstLabel);
@@ -263,7 +263,7 @@ DisassemblyError processInput(char const* inputBuffer, size_t numBytes, LabelTab
     LabelTableEntry const* firstLabel = labelTable->data;
     LabelTableEntry const* nextLabel = labelTable->data;
 
-    size_t ip = 0;
+    CPUAddr ip = 0;
     while (ip < numBytes) {
         nextLabel = processNextLabel(nextLabel, firstLabel, ip, outputFile);
         processCommand(inputBuffer, numBytes, &ip, labelTable, outputFile);

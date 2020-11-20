@@ -1,5 +1,7 @@
 #pragma once
 
+#include "commands.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -13,19 +15,13 @@ typedef enum {
 } LabelType;
 
 typedef struct {
-    size_t* writeAddresses;
+    CPUAddr* writeAddresses;
     size_t size;
     size_t capacity;
-    size_t labelAddress;
+    CPUAddr labelAddress;
     char const* labelName;
     bool bFound;
 } LabelTableEntry;
-
-typedef enum {
-    LABEL_ADD_OK,
-    LABEL_ADD_OOM,
-    LABEL_ADD_DUPLICATE,
-} LabelAddRes;
 
 typedef struct {
     LabelTableEntry* data;
@@ -33,16 +29,22 @@ typedef struct {
     size_t capacity;
 } LabelTable;
 
+typedef enum {
+    LABEL_ADD_OK,
+    LABEL_ADD_OOM,
+    LABEL_ADD_DUPLICATE,
+} LabelAddRes;
+
 bool isLabel(char const* token);
 LabelType labelType(char const* token);
 int printLabel(FILE* outputFile, size_t labelNumber);
 
-LabelTableEntry* findLabelByAddr(LabelTable const* table, size_t ip);
+LabelTableEntry* findLabelByAddr(LabelTable const* table, CPUAddr ip);
 
-LabelAddRes addLabelUseByAddr(LabelTable* table, size_t ip);
+LabelAddRes addLabelUseByAddr(LabelTable* table, CPUAddr ip);
 
-LabelAddRes addLabelDefByName(LabelTable* table, char const* label, size_t ip);
-LabelAddRes addLabelUseByName(LabelTable* table, char const* label, size_t ip);
+LabelAddRes addLabelDefByName(LabelTable* table, char const* label, CPUAddr ip);
+LabelAddRes addLabelUseByName(LabelTable* table, char const* label, CPUAddr ip);
 
 void sortByAddress(LabelTable* table);
 
