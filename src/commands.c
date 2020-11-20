@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <string.h>
 
-#define ARR_SIZE(arr) sizeof(arr) / sizeof(*arr)
+#define ARR_SIZE(arr) (sizeof(arr) / sizeof(*(arr)))
 
 static Command const commandArr[] = {
     {CMD_HALT_NAME, CMD_HALT_CODE, 0, {CMD_ARG_TYPE_NONE}},

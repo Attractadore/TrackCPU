@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -100,10 +101,10 @@ AssemblyError handleLabel(char** tokenP, size_t ip, LabelTable* labelTable) {
     assert(!"No result returned");
 }
 
-#define WRITE_ADVANCE(data, ip, outputFile)         \
-    do {                                            \
-        fwrite(&data, sizeof(data), 1, outputFile); \
-        ip += sizeof(data);                         \
+#define WRITE_ADVANCE(data, ip, outputFile)           \
+    do {                                              \
+        fwrite(&(data), sizeof(data), 1, outputFile); \
+        (ip) += sizeof(data);                         \
     } while (0)
 
 AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, LabelTable* labelTable, FILE* outputFile) {
@@ -120,21 +121,21 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, size_t* ipp, Labe
 
     switch (argType) {
         case CMD_ARG_TYPE_INT: {
-            CPUInt cmdArg;
+            CPUInt cmdArg = 0;
             if (sscanf(token, "%" CPU_SFMT_I, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             WRITE_ADVANCE(cmdArg, ip, outputFile);
         } break;
         case CMD_ARG_TYPE_UINT: {
-            CPUUInt cmdArg;
+            CPUUInt cmdArg = 0;
             if (sscanf(token, "%" CPU_SFMT_UI, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             WRITE_ADVANCE(cmdArg, ip, outputFile);
         } break;
         case CMD_ARG_TYPE_FLOAT: {
-            CPUFloat cmdArg;
+            CPUFloat cmdArg = NAN;
             if (sscanf(token, "%" CPU_SFMT_F, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }

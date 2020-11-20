@@ -114,7 +114,7 @@ typedef struct command_t {
 } Command;
 
 Command const* getCommandByName(char const* str);
-Command const* getCommandByCode(const CommandCode code);
+Command const* getCommandByCode(CommandCode code);
 
 typedef enum register_code_e {
     REG_CODE_RA,
@@ -133,6 +133,7 @@ typedef enum register_code_e {
     REG_CODE_RN,
     REG_CODE_RO,
     REG_CODE_RP,
+    REG_CODE_INVALID,
 } RegisterCode;
 
 typedef struct register_t {

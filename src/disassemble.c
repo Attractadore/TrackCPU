@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,16 +40,16 @@ char const* getDisassemblyErrorString(DisassemblyError e) {
 
 #define ADVANCE_CHECK(end, ip, step, l) \
     do {                                \
-        ip += step;                     \
-        if (ip > end) {                 \
+        (ip) += (step);                 \
+        if ((ip) > (end)) {             \
             goto l;                     \
         }                               \
     } while (0)
 
-#define WRITE_ADVANCE_CHECK(src, end, ip, data, l) \
-    do {                                           \
-        memcpy(&data, src + ip, sizeof(data));     \
-        ADVANCE_CHECK(end, ip, sizeof(data), l);   \
+#define WRITE_ADVANCE_CHECK(src, end, ip, data, l)   \
+    do {                                             \
+        memcpy(&(data), (src) + (ip), sizeof(data)); \
+        ADVANCE_CHECK(end, ip, sizeof(data), l);     \
     } while (0)
 
 DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, size_t* ipp, LabelTable* labelTable) {
@@ -69,7 +70,7 @@ DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, 
             ADVANCE_CHECK(numBytes, ip, sizeof(CPUFloat), corruption);
             break;
         case CMD_ARG_TYPE_REGISTER: {
-            CPURegisterID cmdArg;
+            CPURegisterID cmdArg = REG_CODE_INVALID;
             WRITE_ADVANCE_CHECK(inputBuffer, numBytes, ip, cmdArg, corruption);
             Register const* reg = getRegisterByCode(cmdArg);
             if (!reg) {
@@ -107,7 +108,6 @@ DisassemblyError preprocessCommand(char const* inputBuffer, size_t numBytes, siz
 
     CPUCommandID cmdCode = CMD_INVALID_CODE;
     WRITE_ADVANCE_CHECK(inputBuffer, numBytes, ip, cmdCode, corruption);
-
     Command const* const cmd = getCommandByCode(cmdCode);
     if (!cmd) {
         return DISASSEMBLY_INVALID_COMMAND;
@@ -149,14 +149,14 @@ DisassemblyError preprocessInput(char const* inputBuffer, size_t numBytes, Label
 
 #define ADVANCE(end, ip, step) \
     do {                       \
-        ip += step;            \
-        assert(ip <= end);     \
+        (ip) += (step);        \
+        assert((ip) <= (end)); \
     } while (0)
 
-#define WRITE_ADVANCE(src, end, ip, data)      \
-    do {                                       \
-        memcpy(&data, src + ip, sizeof(data)); \
-        ADVANCE(end, ip, sizeof(data));        \
+#define WRITE_ADVANCE(src, end, ip, data)            \
+    do {                                             \
+        memcpy(&(data), (src) + (ip), sizeof(data)); \
+        ADVANCE(end, ip, sizeof(data));              \
     } while (0)
 
 DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, size_t* ipp, LabelTable const* labelTable, FILE* outputFile) {
@@ -170,29 +170,29 @@ DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, siz
     fputc(' ', outputFile);
     switch (argType) {
         case CMD_ARG_TYPE_INT: {
-            CPUInt cmdArg;
+            CPUInt cmdArg = 0;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             fprintf(outputFile, "%" CPU_PFMT_I, cmdArg);
         } break;
         case CMD_ARG_TYPE_UINT: {
-            CPUUInt cmdArg;
+            CPUUInt cmdArg = 0;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             fprintf(outputFile, "%" CPU_PFMT_UI, cmdArg);
         } break;
         case CMD_ARG_TYPE_FLOAT: {
-            CPUFloat cmdArg;
+            CPUFloat cmdArg = NAN;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             fprintf(outputFile, "%" CPU_PFMT_F, cmdArg);
         } break;
         case CMD_ARG_TYPE_REGISTER: {
-            CPURegisterID cmdArg;
+            CPURegisterID cmdArg = 0;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             Register const* reg = getRegisterByCode(cmdArg);
             assert(reg);
             fprintf(outputFile, "%s", reg->name);
         } break;
         case CMD_ARG_TYPE_LABEL: {
-            size_t cmdArg;
+            size_t cmdArg = numBytes + 1;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             assert(cmdArg <= numBytes);
             LabelTableEntry const* entry = findLabelByAddr(labelTable, cmdArg);
