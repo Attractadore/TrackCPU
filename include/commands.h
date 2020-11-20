@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stddef.h>
 
-typedef enum command_code_e {
+typedef enum {
     CMD_HALT_CODE,
 
     CMD_CALL_CODE,
@@ -82,6 +82,7 @@ typedef enum command_code_e {
 typedef double CPUFloat;
 typedef long long CPUInt;
 typedef unsigned long long CPUUInt;
+typedef CPUUInt CPUReg;
 typedef size_t CPUCommandID;
 typedef size_t CPURegisterID;
 static_assert(sizeof(CPUFloat) == sizeof(CPUInt) && sizeof(CPUFloat) == sizeof(CPUUInt),
@@ -93,7 +94,7 @@ static_assert(sizeof(CPUFloat) == sizeof(CPUInt) && sizeof(CPUFloat) == sizeof(C
 #define CPU_SFMT_I "lld"
 #define CPU_SFMT_UI "llu"
 
-typedef enum command_arg_type_e {
+typedef enum {
     CMD_ARG_TYPE_NONE = 0,
     CMD_ARG_TYPE_INT,
     CMD_ARG_TYPE_UINT,
@@ -106,7 +107,7 @@ enum {
     COMMAND_MAX_ARGS = 3
 };
 
-typedef struct command_t {
+typedef struct {
     char const* const name;
     const CommandCode code;
     const size_t numArgs;
@@ -116,7 +117,7 @@ typedef struct command_t {
 Command const* getCommandByName(char const* str);
 Command const* getCommandByCode(CommandCode code);
 
-typedef enum register_code_e {
+typedef enum {
     REG_CODE_RA,
     REG_CODE_RB,
     REG_CODE_RC,
@@ -136,7 +137,7 @@ typedef enum register_code_e {
     REG_CODE_INVALID,
 } RegisterCode;
 
-typedef struct register_t {
+typedef struct {
     char const* const name;
     RegisterCode const code;
 } Register;

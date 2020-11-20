@@ -9,7 +9,7 @@
 
 #define COMMAND_INDENT "    "
 
-typedef enum disassembly_error_e {
+typedef enum {
     DISASSEMBLY_OK,
     DISASSEMBLY_OOM,
     DISASSEMBLY_INVALID_COMMAND,

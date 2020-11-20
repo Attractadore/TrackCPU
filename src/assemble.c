@@ -34,7 +34,7 @@ void strip(char* inputString) {
     *writeP = '\0';
 }
 
-typedef enum assembly_error_e {
+typedef enum {
     ASSEMBLY_OK,
     ASSEMBLY_MEMORY_EXHAUSTED,
     ASSEMBLY_INVALID_COMMAND,

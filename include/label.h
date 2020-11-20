@@ -6,13 +6,13 @@
 #define LABEL_START '.'
 #define LABEL_END ':'
 
-typedef enum label_type_e {
+typedef enum {
     LABEL_DECLARATION,
     LABEL_USAGE,
     LABEL_INVALID,
 } LabelType;
 
-typedef struct label_table_entry_t {
+typedef struct {
     size_t* writeAddresses;
     size_t size;
     size_t capacity;
@@ -21,13 +21,13 @@ typedef struct label_table_entry_t {
     bool bFound;
 } LabelTableEntry;
 
-typedef enum label_add_res_e {
+typedef enum {
     LABEL_ADD_OK,
     LABEL_ADD_OOM,
     LABEL_ADD_DUPLICATE,
 } LabelAddRes;
 
-typedef struct label_table_t {
+typedef struct {
     LabelTableEntry* data;
     size_t size;
     size_t capacity;
