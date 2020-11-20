@@ -4,18 +4,16 @@
 .fib:
     # store n in ra
     # compare ra to 1
+    push ra
     pushu 1
     push ra
     leu
     jumpf .fib_large
 .fib_small:
-    push ra
     return
 .fib_large:
     # check if result is cached
-    push ra
-    top rc
-    load
+    load ra
     top rb
     # compare cached value with 0
     # if 0, cache
@@ -31,12 +29,13 @@
     pop rb
     subu
     pop ra
-    call .fib
     push rb
+    call .fib
     addu
-    top rb
-    push rc
-    store
+    pop rb
+    pop ra
+    push rb
+    store ra
 .fib_finish:
     push rb
     return
@@ -48,4 +47,3 @@
     printu
     pops
     return
-
