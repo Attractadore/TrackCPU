@@ -95,11 +95,11 @@ void freeMemory(CPUMemory* mem) {
     }
 }
 
-size_t calcReserveBegin(addr) {
+size_t calcReserveBegin(size_t addr) {
     return addr / CPU_MEM_CHUNK_SIZE * CPU_MEM_CHUNK_SIZE;
 }
 
-size_t calcReserveEnd(addr) {
+size_t calcReserveEnd(size_t addr) {
     return calcReserveBegin(addr) + CPU_MEM_CHUNK_SIZE;
 }
 
