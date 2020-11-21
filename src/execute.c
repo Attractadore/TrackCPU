@@ -95,47 +95,90 @@ void freeMemory(CPUMemory* mem) {
     }
 }
 
+size_t calcReserveBegin(addr) {
+    return addr / CPU_MEM_CHUNK_SIZE * CPU_MEM_CHUNK_SIZE;
+}
+
+size_t calcReserveEnd(addr) {
+    return calcReserveBegin(addr) + CPU_MEM_CHUNK_SIZE;
+}
+
 void initMem(CPUMemory* mem, size_t addr) {
     assert(mem);
 
-    size_t newReserveBegin = addr / CPU_MEM_CHUNK_SIZE * CPU_MEM_CHUNK_SIZE;
-    size_t newReserveEnd = newReserveBegin + CPU_MEM_CHUNK_SIZE;
+    size_t newReserveBegin = calcReserveBegin(addr);
+    size_t newReserveEnd = calcReserveEnd(addr);
 
     CPUData* newData = calloc(newReserveEnd - newReserveBegin, sizeof(newData));
-    assert(newData);  // TODO
+    if (!newData) {
+        return;
+    }
 
     mem->reserveBegin = newReserveBegin;
     mem->reserveEnd = newReserveEnd;
     mem->data = newData;
 }
 
-void addjustMem(CPUMemory* mem, size_t addr) {
+void adjustBegin(CPUMemory* mem, size_t addr) {
+    assert(mem);
+    assert(mem->data);
+    assert(addr < mem->reserveBegin);
+
+    size_t newReserveBegin = calcReserveBegin(addr);
+    size_t size = mem->reserveEnd - mem->reserveBegin;
+    size_t newSize = mem->reserveEnd - newReserveBegin;
+    CPUData* newData = realloc(mem->data, newSize * sizeof(*newData));
+    if (!newData) {
+        return;
+    }
+    memmove(newData + (newSize - size), newData, size * sizeof(*newData));
+    memset(newData, 0, (newSize - size) * sizeof(*newData));
+    mem->reserveBegin = newReserveBegin;
+    mem->data = newData;
+}
+
+void adjustEnd(CPUMemory* mem, size_t addr) {
+    assert(mem);
+    assert(mem->data);
+    assert(addr >= mem->reserveEnd);
+
+    size_t newReserveEnd = calcReserveEnd(addr);
+    size_t size = mem->reserveEnd - mem->reserveBegin;
+    size_t newSize = newReserveEnd - mem->reserveBegin;
+    CPUData* newData = realloc(mem->data, newSize * sizeof(*newData));
+    if (!newData) {
+        return;
+    }
+    memset(newData + size, 0, (newSize - size) * sizeof(*newData));
+    mem->reserveEnd = newReserveEnd;
+    mem->data = newData;
+}
+
+void adjustMem(CPUMemory* mem, size_t addr) {
     assert(mem);
     if (!mem->data) {
         initMem(mem, addr);
         return;
     }
     if (addr < mem->reserveBegin) {
-        // TODO
-        assert(!"Not implemented");
+        adjustBegin(mem, addr);
         return;
     }
     if (addr >= mem->reserveEnd) {
-        // TODO
-        assert(!"Not implemented");
+        adjustEnd(mem, addr);
         return;
     }
 }
 
 void storeValue(CPUMemory* mem, CPUData value, size_t addr) {
     assert(mem);
-    addjustMem(mem, addr);
+    adjustMem(mem, addr);
     mem->data[addr - mem->reserveBegin] = value;
 }
 
 CPUData loadValue(CPUMemory* mem, size_t addr) {
     assert(mem);
-    addjustMem(mem, addr);
+    adjustMem(mem, addr);
     return mem->data[addr - mem->reserveBegin];
 }
 
@@ -278,11 +321,11 @@ typedef CPUInt (*twoIntFunc)(CPUInt, CPUInt);
 typedef CPUUInt (*twoUIntFunc)(CPUUInt, CPUUInt);
 typedef CPUFloat (*twoFloatFunc)(CPUFloat, CPUFloat);
 
-#define CPU_CHECK_DATA_POP(stk)                               \
+#define CPU_CHECK_COMMON_POP(stk, sge)                        \
     do {                                                      \
         switch (CPUExecMode) {                                \
             case CPU_EXEC_SAFE:                               \
-                switch (StackGetError_CPUData(valueStack)) {  \
+                switch (sge(stk)) {                           \
                     case STACK_OK:                            \
                         break;                                \
                     case STACK_OPERATION_ERROR:               \
@@ -292,7 +335,7 @@ typedef CPUFloat (*twoFloatFunc)(CPUFloat, CPUFloat);
                 }                                             \
                 break;                                        \
             case CPU_EXEC_FAST:                               \
-                switch (StackGetError_CPUData(valueStack)) {  \
+                switch (sge(stk)) {                           \
                     case STACK_OPERATION_ERROR:               \
                         return EXECUTE_VALUE_STACK_UNDERFLOW; \
                     default:                                  \
@@ -306,25 +349,31 @@ typedef CPUFloat (*twoFloatFunc)(CPUFloat, CPUFloat);
         }                                                     \
     } while (0)
 
-#define CPU_CHECK_DATA_TOP(stk) CPU_CHECK_DATA_POP(stk)
-
-#define CPU_CHECK_DATA_PUSH(stk)                             \
-    do {                                                     \
-        switch (CPUExecMode) {                               \
-            case CPU_EXEC_SAFE:                              \
-                switch (StackGetError_CPUData(valueStack)) { \
-                    case STACK_OK:                           \
-                        break;                               \
-                    default:                                 \
-                        return EXECUTE_INTERNAL_FAILURE;     \
-                }                                            \
-            case CPU_EXEC_FAST:                              \
-            case CPU_EXEC_UNSAFE:                            \
-                break;                                       \
-            default:                                         \
-                UNKNOW_EXEC_MODE;                            \
-        }                                                    \
+#define CPU_CHECK_COMMON_PUSH(stk, sge)                  \
+    do {                                                 \
+        switch (CPUExecMode) {                           \
+            case CPU_EXEC_SAFE:                          \
+                switch (sge(stk)) {                      \
+                    case STACK_OK:                       \
+                        break;                           \
+                    default:                             \
+                        return EXECUTE_INTERNAL_FAILURE; \
+                }                                        \
+            case CPU_EXEC_FAST:                          \
+            case CPU_EXEC_UNSAFE:                        \
+                break;                                   \
+            default:                                     \
+                UNKNOW_EXEC_MODE;                        \
+        }                                                \
     } while (0)
+
+#define CPU_CHECK_DATA_POP(stk) CPU_CHECK_COMMON_POP(stk, StackGetError_CPUData)
+#define CPU_CHECK_DATA_TOP(stk) CPU_CHECK_DATA_POP(stk)
+#define CPU_CHECK_DATA_PUSH(stk) CPU_CHECK_COMMON_PUSH(stk, StackGetError_CPUData)
+
+#define CPU_CHECK_ADDR_POP(stk) CPU_CHECK_COMMON_POP(stk, StackGetError_CPUAddr)
+#define CPU_CHECK_ADDR_TOP(stk) CPU_CHECK_ADDR_POP(stk)
+#define CPU_CHECK_ADDR_PUSH(stk) CPU_CHECK_COMMON_PUSH(stk, StackGetError_CPUAddr)
 
 ExecuteError stackApplyOneIntFunc(Stack_CPUData* valueStack, oneIntFunc f) {
     assert(valueStack);
@@ -446,6 +495,22 @@ ExecuteError stackApplyTwoFloatFunc(Stack_CPUData* valueStack, twoFloatFunc f) {
         }                                             \
     } while (0)
 
+#define CPU_CHECK_MEMORY(mem)           \
+    do {                                \
+        switch (CPUExecMode) {          \
+            case CPU_EXEC_SAFE:         \
+            case CPU_EXEC_FAST:         \
+                if (!mem->data) {       \
+                    return EXECUTE_OOM; \
+                }                       \
+                break;                  \
+            case CPU_EXEC_UNSAFE:       \
+                break;                  \
+            default:                    \
+                UNKNOW_EXEC_MODE;       \
+        }                               \
+    } while (0)
+
 ExecuteError processCommand(char const* commandBuffer, size_t commandBufferSize, CPUAddr* ipp, Stack_CPUData* valueStack, Stack_CPUAddr* callStack, CPUData* registers, CPUMemory* mem) {
     assert(commandBuffer);
     assert(ipp);
@@ -462,10 +527,12 @@ ExecuteError processCommand(char const* commandBuffer, size_t commandBufferSize,
             CPUAddr jumpAddr = commandBufferSize + 1;
             READ_ADVANCE(commandBuffer, commandBufferSize, ip, jumpAddr, EXECUTE_CORRUPTION);
             StackPush_CPUAddr(callStack, ip);
+            CPU_CHECK_ADDR_PUSH(callStack);
             ip = jumpAddr;
         } break;
         case CMD_RETURN_CODE: {
             ip = StackPop_CPUAddr(callStack);
+            CPU_CHECK_ADDR_POP(callStack);
         } break;
 
         case CMD_JUMP_CODE: {
@@ -669,20 +736,27 @@ ExecuteError processCommand(char const* commandBuffer, size_t commandBufferSize,
             CPURegisterID addrReg = REG_CODE_INVALID;
             READ_ADVANCE(commandBuffer, commandBufferSize, ip, addrReg, EXECUTE_CORRUPTION);
             CPU_CHECK_REGISTER(addrReg);
-            StackPush_CPUData(valueStack, loadValue(mem, registers[addrReg]));
+            CPUData loadv = loadValue(mem, registers[addrReg]);
+            CPU_CHECK_MEMORY(mem);
+            StackPush_CPUData(valueStack, loadv);
             CPU_CHECK_DATA_PUSH(valueStack);
         } break;
         case CMD_STORE_CODE: {
             CPURegisterID addrReg = REG_CODE_INVALID;
             READ_ADVANCE(commandBuffer, commandBufferSize, ip, addrReg, EXECUTE_CORRUPTION);
             CPU_CHECK_REGISTER(addrReg);
-            storeValue(mem, StackTop_CPUData(valueStack), registers[addrReg]);
+            CPUData storev = StackTop_CPUData(valueStack);
+            CPU_CHECK_DATA_TOP(valueStack);
+            storeValue(mem, storev, registers[addrReg]);
+            CPU_CHECK_MEMORY(mem);
         } break;
         case CMD_MOVE_CODE: {
             CPURegisterID addrReg = REG_CODE_INVALID;
             READ_ADVANCE(commandBuffer, commandBufferSize, ip, addrReg, EXECUTE_CORRUPTION);
             CPU_CHECK_REGISTER(addrReg);
-            storeValue(mem, StackPop_CPUData(valueStack), registers[addrReg]);
+            CPUData movev = StackPop_CPUData(valueStack);
+            storeValue(mem, movev, registers[addrReg]);
+            CPU_CHECK_MEMORY(mem);
         } break;
 
         default:
@@ -728,6 +802,12 @@ ExecuteError execute(char const* commandBuffer, size_t commandBufferSize) {
 #undef CPU_CHECK_DATA_POP
 #undef CPU_CHECK_DATA_TOP
 #undef CPU_CHECK_DATA_PUSH
+#undef CPU_CHECK_ADDR_POP
+#undef CPU_CHECK_ADDR_TOP
+#undef CPU_CHECK_ADDR_PUSH
+#undef CPU_CHECK_COMMON_POP
+#undef CPU_CHECK_COMMON_PUSH
+
 #undef CPU_PRINT
 #undef CPU_SCAN
 #undef READ_ADVANCE
