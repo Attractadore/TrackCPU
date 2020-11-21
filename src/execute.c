@@ -455,6 +455,7 @@ ExecuteError stackApplyTwoFloatFunc(Stack_CPUData* valueStack, twoFloatFunc f) {
             } break;                               \
             case CPU_EXEC_FAST:                    \
             case CPU_EXEC_UNSAFE:                  \
+                printf(fmt, arg);                  \
                 break;                             \
             default:                               \
                 UNKNOW_EXEC_MODE;                  \
@@ -472,6 +473,7 @@ ExecuteError stackApplyTwoFloatFunc(Stack_CPUData* valueStack, twoFloatFunc f) {
                 }                                   \
             } break;                                \
             case CPU_EXEC_UNSAFE:                   \
+                scanf(fmt, argp);                   \
                 break;                              \
             default:                                \
                 UNKNOW_EXEC_MODE;                   \
