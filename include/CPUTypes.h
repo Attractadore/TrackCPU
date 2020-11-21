@@ -6,7 +6,7 @@
 typedef double CPUFloat;
 typedef long long CPUInt;
 typedef unsigned long long CPUUInt;
-typedef CPUUInt CPURegData;
+typedef CPUUInt CPUData;
 typedef size_t CPUAddr;
 typedef size_t CPUCommandID;
 typedef size_t CPURegisterID;

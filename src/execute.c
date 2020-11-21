@@ -1,6 +1,11 @@
-#define STACK_ELEM_TYPE double
-#include "commands.h"
+#include "CPUTypes.h"
+
+#define STACK_ELEM_TYPE CPUData
 #include "stack_generic.h"
+#define STACK_ELEM_TYPE CPUAddr
+#include "stack_generic.h"
+
+#include "commands.h"
 #include "util.h"
 
 #include <assert.h>
@@ -8,14 +13,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum execute_error_e {
+typedef enum {
+    CPU_EXEC_SAFE,
+    CPU_EXEC_FAST,
+    CPU_EXEC_UNSAFE,
+} CPU_EXECUTION_MODE;
+
+#define UNKNOW_EXEC_MODE                             \
+    do {                                             \
+        assert(!"CPUExecMode set to unknown value"); \
+    } while (0)
+
+CPU_EXECUTION_MODE CPUExecMode = CPU_EXEC_SAFE;
+
+typedef enum {
     EXECUTE_OK,
     EXECUTE_TERMINATE,
     EXECUTE_INVALID_COMMAND,
     EXECUTE_INVALID_COMMAND_ARGUMENT_COUNT,
+    EXECUTE_INVALID_REGISTER,
     EXECUTE_CORRUPTION,
-    EXECUTE_STACK_UNDERFLOW,
+    EXECUTE_OOM,
+    EXECUTE_VALUE_STACK_UNDERFLOW,
+    EXECUTE_CALL_STACK_UNDERFLOW,
     EXECUTE_INPUT_FAILURE,
+    EXECUTE_OUTPUT_FAILURE,
     EXECUTE_INTERNAL_FAILURE,
 } ExecuteError;
 
@@ -29,185 +51,715 @@ char const* getExecuteErrorString(ExecuteError e) {
             return "Binary contains invalid command";
         case EXECUTE_INVALID_COMMAND_ARGUMENT_COUNT:
             return "Binary contains command with invalid argument count";
+        case EXECUTE_INVALID_REGISTER:
+            return "Binary contains command with invalid register argument";
         case EXECUTE_CORRUPTION:
             return "Binary is corrupted";
-        case EXECUTE_STACK_UNDERFLOW:
-            return "Binary contains command sequence that has led to a stack underflow";
+        case EXECUTE_OOM:
+            return "Memory exhausted during execution";
+        case EXECUTE_VALUE_STACK_UNDERFLOW:
+            return "Pop from empty stack value stack requested";
+        case EXECUTE_CALL_STACK_UNDERFLOW:
+            return "Return from base frame requested";
         case EXECUTE_INTERNAL_FAILURE:
             return "Runtime error";
+        case EXECUTE_INPUT_FAILURE:
+            return "Failed to get input from user";
+        case EXECUTE_OUTPUT_FAILURE:
+            return "Failed to get write output";
         default:
             return "Unknown execution error";
     }
     assert(!"No error string returned");
 }
 
-typedef double (*OneArgFunc)(double);
-typedef double (*TwoArgFunc)(double, double);
+enum {
+    CPU_MEM_CHUNK_SIZE = 256
+};
 
-ExecuteError executeTwoArgCommand(Stack_double* valueStack, TwoArgFunc func) {
-    double arg1, arg2;
-    arg1 = StackPop_double(valueStack);
-    arg2 = StackPop_double(valueStack);
-    if (StackGetError_double(valueStack) == STACK_OPERATION_ERROR) {
-        return EXECUTE_STACK_UNDERFLOW;
-    }
-    if (StackGetError_double(valueStack) != STACK_OK) {
-        return EXECUTE_INTERNAL_FAILURE;
-    }
-    StackPush_double(valueStack, func(arg1, arg2));
-    return EXECUTE_OK;
+typedef struct {
+    CPUData* data;
+    size_t reserveBegin;
+    size_t reserveEnd;
+} CPUMemory;
+
+CPUMemory* initMemory() {
+    CPUMemory* mem = calloc(1, sizeof(*mem));
+    return mem;
 }
 
-ExecuteError executeOneArgCommand(Stack_double* valueStack, OneArgFunc func) {
-    double arg;
-    arg = StackPop_double(valueStack);
-    if (StackGetError_double(valueStack) == STACK_OPERATION_ERROR) {
-        return EXECUTE_STACK_UNDERFLOW;
+void freeMemory(CPUMemory* mem) {
+    if (mem) {
+        free(mem->data);
+        free(mem);
     }
-    if (StackGetError_double(valueStack) != STACK_OK) {
-        return EXECUTE_INTERNAL_FAILURE;
-    }
-    StackPush_double(valueStack, func(arg));
-    return EXECUTE_OK;
 }
 
-double CPUAdd(double v1, double v2) {
+void initMem(CPUMemory* mem, size_t addr) {
+    assert(mem);
+
+    size_t newReserveBegin = addr / CPU_MEM_CHUNK_SIZE * CPU_MEM_CHUNK_SIZE;
+    size_t newReserveEnd = newReserveBegin + CPU_MEM_CHUNK_SIZE;
+
+    CPUData* newData = calloc(newReserveEnd - newReserveBegin, sizeof(newData));
+    assert(newData);  // TODO
+
+    mem->reserveBegin = newReserveBegin;
+    mem->reserveEnd = newReserveEnd;
+    mem->data = newData;
+}
+
+void addjustMem(CPUMemory* mem, size_t addr) {
+    assert(mem);
+    if (!mem->data) {
+        initMem(mem, addr);
+        return;
+    }
+    if (addr < mem->reserveBegin) {
+        // TODO
+        assert(!"Not implemented");
+        return;
+    }
+    if (addr >= mem->reserveEnd) {
+        // TODO
+        assert(!"Not implemented");
+        return;
+    }
+}
+
+void storeValue(CPUMemory* mem, CPUData value, size_t addr) {
+    assert(mem);
+    addjustMem(mem, addr);
+    mem->data[addr - mem->reserveBegin] = value;
+}
+
+CPUData loadValue(CPUMemory* mem, size_t addr) {
+    assert(mem);
+    addjustMem(mem, addr);
+    return mem->data[addr - mem->reserveBegin];
+}
+
+CPUData CPUDataFromCPUFloat(CPUFloat v) {
+    return *(CPUData*) &v;
+}
+
+CPUFloat CPUFloatFromCPUData(CPUData v) {
+    return *(CPUFloat*) &v;
+}
+
+CPUInt CPUEqualI(CPUInt v1, CPUInt v2) {
+    return v1 == v2;
+}
+
+CPUUInt CPUEqualUI(CPUUInt v1, CPUUInt v2) {
+    return v1 == v2;
+}
+
+CPUFloat CPUEqualF(CPUFloat v1, CPUFloat v2) {
+    return v1 == v2;
+}
+
+CPUInt CPULessI(CPUInt v1, CPUInt v2) {
+    return v1 < v2;
+}
+
+CPUUInt CPULessUI(CPUUInt v1, CPUUInt v2) {
+    return v1 < v2;
+}
+
+CPUFloat CPULessF(CPUFloat v1, CPUFloat v2) {
+    return v1 < v2;
+}
+
+CPUInt CPULessEqualI(CPUInt v1, CPUInt v2) {
+    return v1 <= v2;
+}
+
+CPUUInt CPULessEqualUI(CPUUInt v1, CPUUInt v2) {
+    return v1 <= v2;
+}
+
+CPUFloat CPULessEqualF(CPUFloat v1, CPUFloat v2) {
+    return v1 <= v2;
+}
+
+CPUInt CPUAddI(CPUInt v1, CPUInt v2) {
     return v1 + v2;
 }
 
-double CPUSub(double v1, double v2) {
+CPUUInt CPUAddUI(CPUUInt v1, CPUUInt v2) {
+    return v1 + v2;
+}
+
+CPUFloat CPUAddF(CPUFloat v1, CPUFloat v2) {
+    return v1 + v2;
+}
+
+CPUInt CPUSubI(CPUInt v1, CPUInt v2) {
     return v1 - v2;
 }
 
-double CPUMul(double v1, double v2) {
+CPUUInt CPUSubUI(CPUUInt v1, CPUUInt v2) {
+    return v1 - v2;
+}
+
+CPUFloat CPUSubF(CPUFloat v1, CPUFloat v2) {
+    return v1 - v2;
+}
+
+CPUInt CPUMulI(CPUInt v1, CPUInt v2) {
     return v1 * v2;
 }
 
-double CPUDiv(double v1, double v2) {
+CPUUInt CPUMulUI(CPUUInt v1, CPUUInt v2) {
+    return v1 * v2;
+}
+
+CPUFloat CPUMulF(CPUFloat v1, CPUFloat v2) {
+    return v1 * v2;
+}
+
+CPUInt CPUDivI(CPUInt v1, CPUInt v2) {
     return v1 / v2;
 }
 
-double CPUSqrt(double v) {
+CPUUInt CPUDivUI(CPUUInt v1, CPUUInt v2) {
+    return v1 / v2;
+}
+
+CPUFloat CPUDivF(CPUFloat v1, CPUFloat v2) {
+    return v1 / v2;
+}
+
+CPUInt CPUModI(CPUInt v1, CPUInt v2) {
+    return v1 % v2;
+}
+
+CPUUInt CPUModUI(CPUUInt v1, CPUUInt v2) {
+    return v1 % v2;
+}
+
+CPUFloat CPUSqrt(CPUFloat v) {
     return sqrt(v);
 }
 
-double CPUSin(double v) {
-    return sin(v);
+CPUUInt CPUAnd(CPUUInt v1, CPUUInt v2) {
+    return v1 & v2;
 }
 
-double CPUCos(double v) {
-    return cos(v);
+CPUUInt CPUOr(CPUUInt v1, CPUUInt v2) {
+    return v1 | v2;
 }
 
-ExecuteError processCommand(char const** const commandBufferP, size_t* const commandBufferSizeP, Stack_double* valueStack) {
-    size_t cmdCode = CMD_INVALID_CODE;
-    if (sizeof(cmdCode) > *commandBufferSizeP) {
-        return EXECUTE_CORRUPTION;
-    }
-    memcpy(&cmdCode, *commandBufferP, sizeof(cmdCode));
-    *commandBufferP += sizeof(cmdCode);
-    *commandBufferSizeP -= sizeof(cmdCode);
+CPUUInt CPUXor(CPUUInt v1, CPUUInt v2) {
+    return v1 ^ v2;
+}
+
+CPUUInt CPUNot(CPUUInt v) {
+    return ~v;
+}
+
+CPUUInt CPULeftShift(CPUUInt v1, CPUUInt v2) {
+    return v1 << v2;
+}
+
+CPUUInt CPURightShift(CPUUInt v1, CPUUInt v2) {
+    return v1 >> v2;
+}
+
+CPUUInt CPURightShiftArithmetic(CPUUInt v1, CPUUInt v2) {
+    return ((CPUInt) v1) >> v2;
+}
+
+typedef CPUInt (*oneIntFunc)(CPUInt);
+typedef CPUUInt (*oneUIntFunc)(CPUUInt);
+typedef CPUFloat (*oneFloatFunc)(CPUFloat);
+typedef CPUInt (*twoIntFunc)(CPUInt, CPUInt);
+typedef CPUUInt (*twoUIntFunc)(CPUUInt, CPUUInt);
+typedef CPUFloat (*twoFloatFunc)(CPUFloat, CPUFloat);
+
+#define CPU_CHECK_DATA_POP(stk)                               \
+    do {                                                      \
+        switch (CPUExecMode) {                                \
+            case CPU_EXEC_SAFE:                               \
+                switch (StackGetError_CPUData(valueStack)) {  \
+                    case STACK_OK:                            \
+                        break;                                \
+                    case STACK_OPERATION_ERROR:               \
+                        return EXECUTE_VALUE_STACK_UNDERFLOW; \
+                    default:                                  \
+                        return EXECUTE_INTERNAL_FAILURE;      \
+                }                                             \
+                break;                                        \
+            case CPU_EXEC_FAST:                               \
+                switch (StackGetError_CPUData(valueStack)) {  \
+                    case STACK_OPERATION_ERROR:               \
+                        return EXECUTE_VALUE_STACK_UNDERFLOW; \
+                    default:                                  \
+                        break;                                \
+                }                                             \
+                break;                                        \
+            case CPU_EXEC_UNSAFE:                             \
+                break;                                        \
+            default:                                          \
+                UNKNOW_EXEC_MODE;                             \
+        }                                                     \
+    } while (0)
+
+#define CPU_CHECK_DATA_TOP(stk) CPU_CHECK_DATA_POP(stk)
+
+#define CPU_CHECK_DATA_PUSH(stk)                             \
+    do {                                                     \
+        switch (CPUExecMode) {                               \
+            case CPU_EXEC_SAFE:                              \
+                switch (StackGetError_CPUData(valueStack)) { \
+                    case STACK_OK:                           \
+                        break;                               \
+                    default:                                 \
+                        return EXECUTE_INTERNAL_FAILURE;     \
+                }                                            \
+            case CPU_EXEC_FAST:                              \
+            case CPU_EXEC_UNSAFE:                            \
+                break;                                       \
+            default:                                         \
+                UNKNOW_EXEC_MODE;                            \
+        }                                                    \
+    } while (0)
+
+ExecuteError stackApplyOneIntFunc(Stack_CPUData* valueStack, oneIntFunc f) {
+    assert(valueStack);
+    CPUData topValue = StackPop_CPUData(valueStack);
+    CPU_CHECK_DATA_POP(valueStack);
+    StackPush_CPUData(valueStack, f(topValue));
+    CPU_CHECK_DATA_PUSH(valueStack);
+    return EXECUTE_OK;
+}
+
+ExecuteError stackApplyOneUIntFunc(Stack_CPUData* valueStack, oneUIntFunc f) {
+    assert(valueStack);
+    CPUData topValue = StackPop_CPUData(valueStack);
+    CPU_CHECK_DATA_POP(valueStack);
+    StackPush_CPUData(valueStack, f(topValue));
+    CPU_CHECK_DATA_PUSH(valueStack);
+    return EXECUTE_OK;
+}
+
+ExecuteError stackApplyOneFloatFunc(Stack_CPUData* valueStack, oneFloatFunc f) {
+    assert(valueStack);
+    CPUFloat topValue = CPUFloatFromCPUData(StackPop_CPUData(valueStack));
+    CPU_CHECK_DATA_POP(valueStack);
+    StackPush_CPUData(valueStack, CPUDataFromCPUFloat(f(topValue)));
+    CPU_CHECK_DATA_PUSH(valueStack);
+    return EXECUTE_OK;
+}
+
+ExecuteError stackApplyTwoIntFunc(Stack_CPUData* valueStack, twoIntFunc f) {
+    assert(valueStack);
+    CPUData value1 = StackPop_CPUData(valueStack);
+    CPU_CHECK_DATA_POP(valueStack);
+    CPUData value2 = StackPop_CPUData(valueStack);
+    CPU_CHECK_DATA_POP(valueStack);
+    StackPush_CPUData(valueStack, f(value1, value2));
+    CPU_CHECK_DATA_PUSH(valueStack);
+    return EXECUTE_OK;
+}
+
+ExecuteError stackApplyTwoUIntFunc(Stack_CPUData* valueStack, twoUIntFunc f) {
+    assert(valueStack);
+    CPUData value1 = StackPop_CPUData(valueStack);
+    CPU_CHECK_DATA_POP(valueStack);
+    CPUData value2 = StackPop_CPUData(valueStack);
+    CPU_CHECK_DATA_POP(valueStack);
+    StackPush_CPUData(valueStack, f(value1, value2));
+    CPU_CHECK_DATA_PUSH(valueStack);
+    return EXECUTE_OK;
+}
+
+ExecuteError stackApplyTwoFloatFunc(Stack_CPUData* valueStack, twoFloatFunc f) {
+    assert(valueStack);
+    CPUFloat value1 = CPUFloatFromCPUData(StackPop_CPUData(valueStack));
+    CPU_CHECK_DATA_POP(valueStack);
+    CPUFloat value2 = CPUFloatFromCPUData(StackPop_CPUData(valueStack));
+    CPU_CHECK_DATA_POP(valueStack);
+    StackPush_CPUData(valueStack, CPUDataFromCPUFloat(f(value1, value2)));
+    CPU_CHECK_DATA_PUSH(valueStack);
+    return EXECUTE_OK;
+}
+
+#define READ_ADVANCE(commandBuffer, commandBufferSize, ip, data, retval) \
+    do {                                                                 \
+        if (ip + sizeof(data) > commandBufferSize) {                     \
+            return (retval);                                             \
+        }                                                                \
+        memcpy(&(data), commandBuffer + ip, sizeof(data));               \
+        (ip) += sizeof(data);                                            \
+    } while (0)
+
+#define CPU_PRINT(fmt, arg)                        \
+    do {                                           \
+        switch (CPUExecMode) {                     \
+            case CPU_EXEC_SAFE: {                  \
+                bool bFail = printf(fmt, arg) < 0; \
+                if (bFail) {                       \
+                    return EXECUTE_OUTPUT_FAILURE; \
+                }                                  \
+            } break;                               \
+            case CPU_EXEC_FAST:                    \
+            case CPU_EXEC_UNSAFE:                  \
+                break;                             \
+            default:                               \
+                UNKNOW_EXEC_MODE;                  \
+        }                                          \
+    } while (0)
+
+#define CPU_SCAN(fmt, argp)                         \
+    do {                                            \
+        switch (CPUExecMode) {                      \
+            case CPU_EXEC_SAFE:                     \
+            case CPU_EXEC_FAST: {                   \
+                bool bFail = scanf(fmt, argp) != 1; \
+                if (bFail) {                        \
+                    return EXECUTE_INPUT_FAILURE;   \
+                }                                   \
+            } break;                                \
+            case CPU_EXEC_UNSAFE:                   \
+                break;                              \
+            default:                                \
+                UNKNOW_EXEC_MODE;                   \
+        }                                           \
+    } while (0)
+
+#define CPU_CHECK_REGISTER(reg)                       \
+    do {                                              \
+        switch (CPUExecMode) {                        \
+            case CPU_EXEC_SAFE:                       \
+            case CPU_EXEC_FAST: {                     \
+                bool bInvalid = reg >= NUM_REGISTERS; \
+                if (bInvalid) {                       \
+                    return EXECUTE_INVALID_REGISTER;  \
+                }                                     \
+            } break;                                  \
+            case CPU_EXEC_UNSAFE:                     \
+                break;                                \
+            default:                                  \
+                UNKNOW_EXEC_MODE;                     \
+        }                                             \
+    } while (0)
+
+ExecuteError processCommand(char const* commandBuffer, size_t commandBufferSize, CPUAddr* ipp, Stack_CPUData* valueStack, Stack_CPUAddr* callStack, CPUData* registers, CPUMemory* mem) {
+    assert(commandBuffer);
+    assert(ipp);
+
+    CPUAddr ip = *ipp;
+    CPUCommandID cmdCode = CMD_INVALID_CODE;
+    READ_ADVANCE(commandBuffer, commandBufferSize, ip, cmdCode, EXECUTE_INVALID_COMMAND);
+    *ipp = ip;
 
     switch (cmdCode) {
-        case CMD_PUSH_CODE: {
-            double cmdArg;
-            if (sizeof(cmdArg) > *commandBufferSizeP) {
-                return EXECUTE_CORRUPTION;
-            }
-            memcpy(&cmdArg, *commandBufferP, sizeof(cmdArg));
-            *commandBufferP += sizeof(cmdArg);
-            *commandBufferSizeP -= sizeof(cmdCode);
-            StackPush_double(valueStack, cmdArg);
-            return EXECUTE_OK;
-        }
-        case CMD_ADD_CODE:
-            return executeTwoArgCommand(valueStack, CPUAdd);
-        case CMD_SUB_CODE:
-            return executeTwoArgCommand(valueStack, CPUSub);
-        case CMD_MUL_CODE:
-            return executeTwoArgCommand(valueStack, CPUMul);
-        case CMD_DIV_CODE:
-            return executeTwoArgCommand(valueStack, CPUDiv);
-        case CMD_SQRT_CODE:
-            return executeOneArgCommand(valueStack, CPUSqrt);
-        case CMD_SIN_CODE:
-            return executeOneArgCommand(valueStack, CPUSin);
-        case CMD_COS_CODE:
-            return executeOneArgCommand(valueStack, CPUCos);
-        case CMD_PRINT_CODE: {
-            double arg = StackTop_double(valueStack);
-            if (StackGetError_double(valueStack) == STACK_OPERATION_ERROR) {
-                return EXECUTE_STACK_UNDERFLOW;
-            }
-            if (StackGetError_double(valueStack) != STACK_OK) {
-                return EXECUTE_INTERNAL_FAILURE;
-            }
-            printf("%g\n", arg);
-            return EXECUTE_OK;
-        }
-        case CMD_SCAN_CODE: {
-            double arg;
-            if (scanf("%lg", &arg) != 0) {
-                return EXECUTE_INPUT_FAILURE;
-            }
-            StackPush_double(valueStack, arg);
-            if (StackGetError_double(valueStack) != STACK_OK) {
-                return EXECUTE_INTERNAL_FAILURE;
-            }
-            return EXECUTE_OK;
-        }
         case CMD_HALT_CODE:
             return EXECUTE_TERMINATE;
+        case CMD_CALL_CODE: {
+            CPUAddr jumpAddr = commandBufferSize + 1;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, jumpAddr, EXECUTE_CORRUPTION);
+            StackPush_CPUAddr(callStack, ip);
+            ip = jumpAddr;
+        } break;
+        case CMD_RETURN_CODE: {
+            ip = StackPop_CPUAddr(callStack);
+        } break;
+
+        case CMD_JUMP_CODE: {
+            CPUAddr jumpAddr = commandBufferSize + 1;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, jumpAddr, EXECUTE_CORRUPTION);
+            ip = jumpAddr;
+        } break;
+        case CMD_JUMP_TRUE_CODE: {
+            CPUAddr jumpAddr = commandBufferSize + 1;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, jumpAddr, EXECUTE_CORRUPTION);
+            if (StackPop_CPUData(valueStack)) {
+                ip = jumpAddr;
+            }
+        } break;
+        case CMD_JUMP_FALSE_CODE: {
+            CPUAddr jumpAddr = commandBufferSize + 1;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, jumpAddr, EXECUTE_CORRUPTION);
+            if (!StackPop_CPUData(valueStack)) {
+                ip = jumpAddr;
+            }
+        } break;
+
+        case CMD_PUSH_CODE: {
+            CPURegisterID pushFromReg = REG_CODE_INVALID;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, pushFromReg, EXECUTE_CORRUPTION);
+            CPU_CHECK_REGISTER(pushFromReg);
+            StackPush_CPUData(valueStack, registers[pushFromReg]);
+        } break;
+        case CMD_PUSH_INT_CODE: {
+            CPUInt inArg = 0;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, inArg, EXECUTE_CORRUPTION);
+            StackPush_CPUData(valueStack, inArg);
+        } break;
+        case CMD_PUSH_UINT_CODE: {
+            CPUUInt inArg = 0;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, inArg, EXECUTE_CORRUPTION);
+            StackPush_CPUData(valueStack, inArg);
+        } break;
+        case CMD_PUSH_FLOAT_CODE: {
+            CPUFloat inArg = NAN;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, inArg, EXECUTE_CORRUPTION);
+            StackPush_CPUData(valueStack, *(CPUData*) &inArg);
+        } break;
+
+        case CMD_POP_CODE: {
+            CPURegisterID popToReg = REG_CODE_INVALID;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, popToReg, EXECUTE_CORRUPTION);
+            CPU_CHECK_REGISTER(popToReg);
+            registers[popToReg] = StackPop_CPUData(valueStack);
+        } break;
+        case CMD_POPS_CODE:
+            StackPop_CPUData(valueStack);
+            break;
+
+        case CMD_TOP_CODE: {
+            CPURegisterID topToReg = REG_CODE_INVALID;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, topToReg, EXECUTE_CORRUPTION);
+            CPU_CHECK_REGISTER(topToReg);
+            registers[topToReg] = StackTop_CPUData(valueStack);
+        } break;
+
+        case CMD_EQUAL_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPUEqualI);
+        } break;
+        case CMD_EQUAL_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUEqualUI);
+        } break;
+        case CMD_EQUAL_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPUEqualF);
+        } break;
+
+        case CMD_LESS_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPULessI);
+        } break;
+        case CMD_LESS_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPULessUI);
+        } break;
+        case CMD_LESS_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPULessF);
+        } break;
+
+        case CMD_LESS_EQUAL_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPULessEqualI);
+        } break;
+        case CMD_LESS_EQUAL_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPULessEqualUI);
+        } break;
+        case CMD_LESS_EQUAL_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPULessEqualF);
+        } break;
+
+        case CMD_AND_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUAnd);
+        } break;
+        case CMD_OR_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUOr);
+        } break;
+        case CMD_XOR_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUXor);
+        } break;
+        case CMD_NOT_CODE: {
+            return stackApplyOneUIntFunc(valueStack, CPUNot);
+        } break;
+        case CMD_LEFT_SHIFT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPULeftShift);
+        } break;
+        case CMD_RIGHT_SHIFT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPURightShift);
+        } break;
+        case CMD_RIGHT_SHIFT_ARITHMETIC_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPURightShiftArithmetic);
+        } break;
+
+        case CMD_ADD_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPUAddI);
+        } break;
+        case CMD_ADD_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUAddUI);
+        } break;
+        case CMD_ADD_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPUAddF);
+        } break;
+
+        case CMD_SUB_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPUSubI);
+        } break;
+        case CMD_SUB_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUSubUI);
+        } break;
+        case CMD_SUB_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPUSubF);
+        } break;
+
+        case CMD_MUL_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPUMulI);
+        } break;
+        case CMD_MUL_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUMulUI);
+        } break;
+        case CMD_MUL_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPUMulF);
+        } break;
+
+        case CMD_DIV_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPUDivI);
+        } break;
+        case CMD_DIV_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUDivUI);
+        } break;
+        case CMD_DIV_FLOAT_CODE: {
+            return stackApplyTwoFloatFunc(valueStack, CPUDivF);
+        } break;
+
+        case CMD_MOD_INT_CODE: {
+            return stackApplyTwoIntFunc(valueStack, CPUModI);
+        } break;
+        case CMD_MOD_UINT_CODE: {
+            return stackApplyTwoUIntFunc(valueStack, CPUModUI);
+        } break;
+
+        case CMD_SQRT_CODE: {
+            return stackApplyOneFloatFunc(valueStack, CPUSqrt);
+        } break;
+
+        case CMD_PRINT_INT_CODE: {
+            CPUInt printv = StackTop_CPUData(valueStack);
+            CPU_CHECK_DATA_TOP(valueStack);
+            CPU_PRINT("%" CPU_PFMT_I "\n", printv);
+        } break;
+        case CMD_PRINT_UINT_CODE: {
+            CPUUInt printv = StackTop_CPUData(valueStack);
+            CPU_CHECK_DATA_TOP(valueStack);
+            CPU_PRINT("%" CPU_PFMT_UI "\n", printv);
+        } break;
+        case CMD_PRINT_FLOAT_CODE: {
+            CPUFloat printv = CPUFloatFromCPUData(StackTop_CPUData(valueStack));
+            CPU_CHECK_DATA_TOP(valueStack);
+            CPU_PRINT("%" CPU_PFMT_F "\n", printv);
+        } break;
+
+        case CMD_SCAN_INT_CODE: {
+            CPUInt inArg = 0;
+            CPU_SCAN("%" CPU_SFMT_UI, &inArg);
+            StackPush_CPUData(valueStack, inArg);
+            CPU_CHECK_DATA_PUSH(valueStack);
+        } break;
+        case CMD_SCAN_UINT_CODE: {
+            CPUUInt inArg = 0;
+            CPU_SCAN("%" CPU_SFMT_UI, &inArg);
+            StackPush_CPUData(valueStack, inArg);
+            CPU_CHECK_DATA_PUSH(valueStack);
+        } break;
+        case CMD_SCAN_FLOAT_CODE: {
+            CPUFloat inArg = NAN;
+            CPU_SCAN("%" CPU_SFMT_F, &inArg);
+            StackPush_CPUData(valueStack, CPUDataFromCPUFloat(inArg));
+            CPU_CHECK_DATA_PUSH(valueStack);
+        } break;
+
+        case CMD_LOAD_CODE: {
+            CPURegisterID addrReg = REG_CODE_INVALID;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, addrReg, EXECUTE_CORRUPTION);
+            CPU_CHECK_REGISTER(addrReg);
+            StackPush_CPUData(valueStack, loadValue(mem, registers[addrReg]));
+            CPU_CHECK_DATA_PUSH(valueStack);
+        } break;
+        case CMD_STORE_CODE: {
+            CPURegisterID addrReg = REG_CODE_INVALID;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, addrReg, EXECUTE_CORRUPTION);
+            CPU_CHECK_REGISTER(addrReg);
+            storeValue(mem, StackTop_CPUData(valueStack), registers[addrReg]);
+        } break;
+        case CMD_MOVE_CODE: {
+            CPURegisterID addrReg = REG_CODE_INVALID;
+            READ_ADVANCE(commandBuffer, commandBufferSize, ip, addrReg, EXECUTE_CORRUPTION);
+            CPU_CHECK_REGISTER(addrReg);
+            storeValue(mem, StackPop_CPUData(valueStack), registers[addrReg]);
+        } break;
+
         default:
             return EXECUTE_INVALID_COMMAND;
     }
-    assert(!"processCommand did not return res");
-}
 
-ExecuteError execute(char const* commandBuffer, size_t commandBufferSize, Stack_double* const valueStack) {
-    assert(commandBuffer);
-    assert(valueStack);
-
-    while (commandBufferSize) {
-        ExecuteError res = processCommand(&commandBuffer, &commandBufferSize, valueStack);
-        if (res != EXECUTE_OK) {
-            return res;
-        }
-    }
+    *ipp = ip;
 
     return EXECUTE_OK;
 }
+
+ExecuteError execute(char const* commandBuffer, size_t commandBufferSize) {
+    assert(commandBuffer);
+
+    static CPUData registers[REG_CODE_INVALID - REG_CODE_RA];
+
+    Stack_CPUData* valueStack = StackAllocate_CPUData();
+    Stack_CPUAddr* callStack = StackAllocate_CPUAddr();
+    CPUMemory* mem = initMemory();
+    if (!valueStack || !callStack || !mem) {
+        StackFree_CPUData(valueStack);
+        StackFree_CPUAddr(callStack);
+        freeMemory(mem);
+        return EXECUTE_OOM;
+    }
+
+    CPUAddr ip = 0;
+    ExecuteError res = EXECUTE_OK;
+    while (ip < commandBufferSize && res != EXECUTE_TERMINATE) {
+        if (res != EXECUTE_OK) {
+            return res;
+        }
+        res = processCommand(commandBuffer, commandBufferSize, &ip, valueStack, callStack, registers, mem);
+    }
+
+    StackFree_CPUData(valueStack);
+    StackFree_CPUAddr(callStack);
+    freeMemory(mem);
+
+    return EXECUTE_OK;
+}
+
+#undef CPU_CHECK_DATA_POP
+#undef CPU_CHECK_DATA_TOP
+#undef CPU_CHECK_DATA_PUSH
+#undef CPU_PRINT
+#undef CPU_SCAN
+#undef READ_ADVANCE
 
 int main(int argc, char const* argv[]) {
     if (argc < 2) {
         printf("Usage: %s input_file\n", (argc) ? (argv[0]) : "program_name");
         return -1;
     }
+
     char const* const inputFileName = argv[1];
+
     FILE* inputFile = fopen(inputFileName, "rb");
     if (!inputFile) {
         printf("Failed to open %s for reading\n", inputFileName);
         return -1;
     }
+
     char* commandBuffer = NULL;
     size_t commandBufferSize = readBuffer(inputFile, &commandBuffer);
     fclose(inputFile);
+
     if (!commandBufferSize) {
         printf("Failed to load executable %s\n", inputFileName);
         free(commandBuffer);
         return -1;
     }
 
-    Stack_double* valueStack = StackAllocate_double();
-    if (!valueStack) {
-        printf("Failed to allocate execution stack\n");
-        free(commandBuffer);
-        return -1;
-    }
-
-    ExecuteError res = execute(commandBuffer, commandBufferSize, valueStack);
+    CPUExecMode = CPU_EXEC_SAFE;
+    ExecuteError res = execute(commandBuffer, commandBufferSize);
     free(commandBuffer);
-    StackFree_double(valueStack);
+
     if (res != EXECUTE_OK) {
         printf("EXECUTION ERROR: %s\n", getExecuteErrorString(res));
         return -1;

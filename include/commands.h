@@ -103,7 +103,7 @@ Command const* getCommandByName(char const* str);
 Command const* getCommandByCode(CommandCode code);
 
 typedef enum {
-    REG_CODE_RA,
+    REG_CODE_RA = 0,
     REG_CODE_RB,
     REG_CODE_RC,
     REG_CODE_RD,
@@ -121,6 +121,10 @@ typedef enum {
     REG_CODE_RP,
     REG_CODE_INVALID,
 } RegisterCode;
+
+enum {
+    NUM_REGISTERS = REG_CODE_INVALID - REG_CODE_RA,
+};
 
 typedef struct {
     char const* const name;
