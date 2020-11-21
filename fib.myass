@@ -4,40 +4,42 @@
 .fib:
     # store n in ra
     # compare ra to 1
-    push ra
-    pushu 1
-    push ra
+    pushu 1 # 1
+    push ra # n, 1
     leu
-    jumpf .fib_large
+    jumpf .fib_large #
 .fib_small:
+    push ra # n
     return
 .fib_large:
     # check if result is cached
-    load ra
+    load ra # cache[n]
     top rb
     # compare cached value with 0
     # if 0, cache
-    jumpt .fib_finish
-    # decrement n second time
-    pushu 1
+    jumpt .fib_finish #
+    push ra # n
     # decrement n first time
-    pushu 1
-    push ra
-    subu
+    pushu 1 # 1, n
+    push ra # n, 1, n
+    subu # n - 1, n
+    pop ra # n
+    call .fib # fib(n - 1), n
+    pop rb # n
     top ra
-    call .fib
-    pop rb
-    subu
-    pop ra
-    push rb
-    call .fib
-    addu
-    pop rb
-    pop ra
-    push rb
-    store ra
+    pushu 2 # 2, n
+    push ra # n, 2, n
+    subu # n - 2, n
+    pop ra # n
+    push rb # fib(n - 1), n
+    call .fib # fib(n - 2), fib(n - 1), n
+    addu # fib(n), n
+    pop rb # n
+    pop ra #
+    push rb # fib(n)
+    move ra #
 .fib_finish:
-    push rb
+    push rb # fib(n)
     return
 
 .main:
