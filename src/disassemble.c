@@ -48,8 +48,11 @@ char const* getDisassemblyErrorString(DisassemblyError e) {
 
 #define WRITE_ADVANCE_CHECK(src, end, ip, data, l)   \
     do {                                             \
+        if ((ip) + sizeof(data) > (end)) {           \
+            goto l;                                  \
+        }                                            \
         memcpy(&(data), (src) + (ip), sizeof(data)); \
-        ADVANCE_CHECK(end, ip, sizeof(data), l);     \
+        (ip) += (sizeof(data));                      \
     } while (0)
 
 DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, CPUAddr* ipp, LabelTable* labelTable) {
@@ -155,8 +158,9 @@ DisassemblyError preprocessInput(char const* inputBuffer, size_t numBytes, Label
 
 #define WRITE_ADVANCE(src, end, ip, data)            \
     do {                                             \
+        assert((ip + sizeof(data)) <= (end));        \
         memcpy(&(data), (src) + (ip), sizeof(data)); \
-        ADVANCE(end, ip, sizeof(data));              \
+        (ip) += sizeof(data);                        \
     } while (0)
 
 DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, size_t numBytes, CPUAddr* ipp, LabelTable const* labelTable, FILE* outputFile) {
