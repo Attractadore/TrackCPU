@@ -109,7 +109,7 @@ void initMem(CPUMemory* mem, size_t addr) {
     size_t newReserveBegin = calcReserveBegin(addr);
     size_t newReserveEnd = calcReserveEnd(addr);
 
-    CPUData* newData = calloc(newReserveEnd - newReserveBegin, sizeof(newData));
+    CPUData* newData = calloc(newReserveEnd - newReserveBegin, sizeof(*newData));
     if (!newData) {
         return;
     }
