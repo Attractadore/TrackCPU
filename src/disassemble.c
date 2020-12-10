@@ -73,7 +73,7 @@ DisassemblyError preprocessArg(CommandArgType argType, char const* inputBuffer, 
             ADVANCE_CHECK(numBytes, ip, sizeof(CPUFloat), corruption);
             break;
         case CMD_ARG_TYPE_REGISTER: {
-            CPURegisterID cmdArg = REG_CODE_INVALID;
+            RegisterCode cmdArg = REG_CODE_INVALID;
             WRITE_ADVANCE_CHECK(inputBuffer, numBytes, ip, cmdArg, corruption);
             Register const* reg = getRegisterByCode(cmdArg);
             if (!reg) {
@@ -109,7 +109,7 @@ DisassemblyError preprocessCommand(char const* inputBuffer, size_t numBytes, CPU
 
     CPUAddr ip = *ipp;
 
-    CPUCommandID cmdCode = CMD_INVALID_CODE;
+    CommandCode cmdCode = CMD_INVALID_CODE;
     WRITE_ADVANCE_CHECK(inputBuffer, numBytes, ip, cmdCode, corruption);
     Command const* const cmd = getCommandByCode(cmdCode);
     if (!cmd) {
@@ -176,20 +176,20 @@ DisassemblyError processArg(CommandArgType argType, char const* inputBuffer, siz
         case CMD_ARG_TYPE_INT: {
             CPUInt cmdArg = 0;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
-            fprintf(outputFile, "%" CPU_PFMT_I, cmdArg);
+            fprintf(outputFile, "%" CPUINT_PRINT_FMT, cmdArg);
         } break;
         case CMD_ARG_TYPE_UINT: {
             CPUUInt cmdArg = 0;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
-            fprintf(outputFile, "%" CPU_PFMT_UI, cmdArg);
+            fprintf(outputFile, "%" CPUUINT_PRINT_FMT, cmdArg);
         } break;
         case CMD_ARG_TYPE_FLOAT: {
             CPUFloat cmdArg = NAN;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
-            fprintf(outputFile, "%" CPU_PFMT_F, cmdArg);
+            fprintf(outputFile, "%" CPUFLOAT_PRINT_FMT, cmdArg);
         } break;
         case CMD_ARG_TYPE_REGISTER: {
-            CPURegisterID cmdArg = 0;
+            RegisterCode cmdArg = 0;
             WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdArg);
             Register const* reg = getRegisterByCode(cmdArg);
             assert(reg);
@@ -221,7 +221,7 @@ DisassemblyError processCommand(char const* inputBuffer, size_t numBytes, CPUAdd
 
     CPUAddr ip = *ipp;
 
-    CPUCommandID cmdCode = CMD_INVALID_CODE;
+    CommandCode cmdCode = CMD_INVALID_CODE;
     WRITE_ADVANCE(inputBuffer, numBytes, ip, cmdCode);
     Command const* const cmd = getCommandByCode(cmdCode);
     assert(cmd);

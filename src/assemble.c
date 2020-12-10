@@ -122,21 +122,21 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, CPUAddr* ipp, Lab
     switch (argType) {
         case CMD_ARG_TYPE_INT: {
             CPUInt cmdArg = 0;
-            if (sscanf(token, "%" CPU_SFMT_I, &cmdArg) != 1) {
+            if (sscanf(token, "%" CPUINT_SCAN_FMT, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             WRITE_ADVANCE(cmdArg, ip, outputFile);
         } break;
         case CMD_ARG_TYPE_UINT: {
             CPUUInt cmdArg = 0;
-            if (sscanf(token, "%" CPU_SFMT_UI, &cmdArg) != 1) {
+            if (sscanf(token, "%" CPUUINT_SCAN_FMT, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             WRITE_ADVANCE(cmdArg, ip, outputFile);
         } break;
         case CMD_ARG_TYPE_FLOAT: {
             CPUFloat cmdArg = NAN;
-            if (sscanf(token, "%" CPU_SFMT_F, &cmdArg) != 1) {
+            if (sscanf(token, "%" CPUFLOAT_SCAN_FMT, &cmdArg) != 1) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
             WRITE_ADVANCE(cmdArg, ip, outputFile);
@@ -162,7 +162,7 @@ AssemblyError handleArg(CommandArgType argType, char** tokenP, CPUAddr* ipp, Lab
             if (!reg) {
                 return ASSEMBLY_INVALID_ARGUMENT;
             }
-            CPURegisterID cmdArg = reg->code;
+            RegisterCode cmdArg = reg->code;
             WRITE_ADVANCE(cmdArg, ip, outputFile);
         } break;
         default:
@@ -192,7 +192,7 @@ AssemblyError handleCommand(char** tokenP, CPUAddr* ipp, LabelTable* labelTable,
         return ASSEMBLY_INVALID_COMMAND;
     }
 
-    CPUCommandID cmdCode = cmd->code;
+    CommandCode cmdCode = cmd->code;
     WRITE_ADVANCE(cmdCode, ip, outputFile);
     token = strtok(NULL, STRIP_DELIM);
 

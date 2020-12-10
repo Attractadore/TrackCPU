@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CPUTypes.h"
+#include "CPUTypes_Gen.h"
 
 #include <stdbool.h>
 #include <stdio.h>
