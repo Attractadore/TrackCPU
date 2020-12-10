@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from sys import argv
+from os.path import relpath
 from string import ascii_lowercase as letters
 commands = {
     "halt": (("TERM",),),
@@ -29,8 +31,8 @@ commands = {
     "bnot": (("APPLY", 1, "CPUUInt", "~{0}"),),
     "not": (("APPLY", 1, "CPUUInt", "!{0}"),),
     "ls": (("APPLY", 2, "CPUUInt", "{0} << {1}"),),
-    "bor": (("APPLY", 2, "CPUUInt", "{0} >> {1}"),),
-    "or": (("APPLY", 2, "CPUInt", "{0} >> {1}"),),
+    "rs": (("APPLY", 2, "CPUUInt", "{0} >> {1}"),),
+    "lrs": (("APPLY", 2, "CPUInt", "{0} >> {1}"),),
 
     "add(T)": (("APPLY", 2, "T", "{0} + {1}"),),
     "sub(T)": (("APPLY", 2, "T", "{0} - {1}"),),
@@ -409,11 +411,16 @@ def GenerateCPUExecDefCheck():
     return c_code
 
 
+Disclaimer = """/**
+THIS FILE WAS GENERATED AUTOMATICALLY
+IF YOU WANT TO ALTER IT MAKE CHANGES TO {}
+**/""".format(relpath(argv[0]))
 PragmaOnce = "#pragma once"
 
 
 def GenerateCommandNamesH(commandNames):
     c_code = "\n\n".join((
+        Disclaimer,
         PragmaOnce,
         GenerateCommandNames(commandNames)))
     return c_code
@@ -421,6 +428,7 @@ def GenerateCommandNamesH(commandNames):
 
 def GenerateCommandsH(commandNames, maxArgs, numRegisters):
     c_code = "\n\n".join((
+        Disclaimer,
         PragmaOnce,
         GenerateCommandCodeEnum(commandNames),
         GenerateCommandArgTypeEnum(),
@@ -434,6 +442,7 @@ def GenerateCommandsH(commandNames, maxArgs, numRegisters):
 
 def GenerateCommandsC(commandDefinitions, numRegisters):
     c_code = "\n\n".join((
+        Disclaimer,
         PragmaOnce,
         Include("CommandNames_Gen.h"),
         Include("Commands_Gen.h"),
@@ -447,6 +456,7 @@ def GenerateCommandsC(commandDefinitions, numRegisters):
 
 def GenerateRegisterNamesH(numRegisters):
     c_code = "\n\n".join((
+        Disclaimer,
         PragmaOnce,
         GenerateRegisterNames(numRegisters)))
     return c_code
@@ -454,6 +464,7 @@ def GenerateRegisterNamesH(numRegisters):
 
 def GenerateCPUTypesH():
     c_code = "\n\n".join((
+        Disclaimer,
         PragmaOnce,
         Include("Commands_Gen.h"),
         GenerateCPUTypes(),
@@ -466,6 +477,7 @@ def GenerateCPUTypesH():
 
 def GenerateCPUExecC(srcCodes):
     c_code = "\n\n".join((
+        Disclaimer,
         GenerateCPUExecDefCheck(),
         GenerateCPUExecSwitch(srcCodes),
     )
